@@ -768,6 +768,11 @@ async function proceedToDashboard() {
 await checkAuthStatus();
 document.getElementById('authOverlay').classList.remove('open');
 document.getElementById('paywallOverlay').classList.remove('open');
+// authOverlay/paywallOverlay live inside #dashboard, so #dashboard must be
+// visible for either of them to actually show up on screen (a display:none
+// ancestor hides descendants regardless of their own display value).
+document.getElementById('landing').style.display = 'none';
+document.getElementById('dashboard').style.display = 'block';
 if (!authStatus.loggedIn) {
 setAuthMode('signup');
 document.getElementById('authOverlay').classList.add('open');
@@ -777,8 +782,6 @@ if (!authStatus.accessGranted) {
 document.getElementById('paywallOverlay').classList.add('open');
 return;
 }
-document.getElementById('landing').style.display = 'none';
-document.getElementById('dashboard').style.display = 'block';
 document.getElementById('currentCityLabel').textContent = selectedCity;
 playFade('dashboard');
 runCheck();
