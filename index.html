@@ -135,10 +135,19 @@ padding: 10px 20px; font-size: 12px; font-weight: 700; cursor: pointer; margin-t
 font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.2px;
 }
 .refresh-btn:disabled { opacity: 0.6; }
+.controls-panel {
+background: #fff; border: 1px solid var(--line); border-radius: 16px;
+padding: 16px 18px; margin: 18px 0 12px; box-shadow: 0 4px 16px rgba(11,23,48,0.04);
+}
+.controls-label {
+font-size: 10px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+color: #9AA3B8; margin-bottom: 9px;
+}
 .controls-row {
 display: flex; justify-content: space-between; align-items: center; gap: 10px;
-margin: 20px 0 12px; flex-wrap: wrap;
+flex-wrap: wrap;
 }
+.controls-row + .controls-label { margin-top: 14px; }
 .filters { display: flex; gap: 8px; flex-wrap: wrap; }
 .filter-btn {
 border: 1.5px solid var(--line); background: #fff; border-radius: 999px;
@@ -146,10 +155,97 @@ padding: 7px 15px; font-size: 12px; font-weight: 600; color: var(--muted); curso
 transition: all .12s;
 }
 .filter-btn.active { background: var(--navy-900); color: #fff; border-color: var(--navy-900); }
+.filter-btn.multi-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .sort-select {
-border: 1.5px solid var(--line); background: #fff; border-radius: 10px;
-padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+border: 1.5px solid var(--line); background: var(--bg); border-radius: 10px;
+padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
 }
+
+/* ---------- Thumbnails + lightbox ---------- */
+.card-thumb {
+width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0; cursor: pointer;
+background: linear-gradient(135deg, var(--accent-soft), #EDF1FB);
+display: flex; align-items: center; justify-content: center;
+border: 1px solid var(--line); overflow: hidden; transition: transform .12s;
+}
+.card-thumb:hover { transform: scale(1.05); }
+.card-thumb svg { width: 22px; height: 22px; color: var(--accent); }
+.card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.lightbox-overlay {
+display: none; position: fixed; inset: 0; background: rgba(11,23,48,0.55);
+z-index: 100; align-items: center; justify-content: center; padding: 20px;
+backdrop-filter: blur(2px);
+}
+.lightbox-overlay.open { display: flex; }
+.lightbox-card {
+background: #fff; border-radius: 20px; max-width: 380px; width: 100%; overflow: hidden;
+box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4); animation: viewFadeIn .25s ease;
+}
+.lightbox-hero {
+height: 160px; background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
+display: flex; align-items: center; justify-content: center; position: relative;
+}
+.lightbox-hero svg { width: 54px; height: 54px; color: rgba(255,255,255,0.85); }
+.lightbox-close {
+position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 50%;
+background: rgba(255,255,255,0.18); color: #fff; border: none; cursor: pointer;
+font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center;
+}
+.lightbox-body { padding: 18px 20px 20px; }
+.lightbox-addr { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+.lightbox-meta { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+.lightbox-price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: var(--navy-900); margin-bottom: 16px; }
+.lightbox-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- Account / auth / paywall ---------- */
+.account-badge {
+font-size: 11.5px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;
+border: 1px solid rgba(255,255,255,0.22); padding: 6px 12px; border-radius: 999px;
+background: rgba(255,255,255,0.08);
+}
+.account-badge .trial-days { color: #fff; }
+.account-badge .upgrade-link { color: #FFD27A; cursor: pointer; text-decoration: underline; }
+.account-badge .logout-link { color: rgba(255,255,255,0.7); cursor: pointer; }
+.account-badge .logout-link:hover { color: #fff; }
+.auth-overlay {
+display: none; position: fixed; inset: 0; background: rgba(11,23,48,0.72);
+z-index: 200; align-items: center; justify-content: center; padding: 20px;
+backdrop-filter: blur(3px);
+}
+.auth-overlay.open { display: flex; }
+.auth-card {
+background: #fff; border-radius: 22px; max-width: 400px; width: 100%; padding: 30px 26px;
+box-shadow: 0 30px 60px -20px rgba(0,0,0,0.45); animation: viewFadeIn .25s ease;
+}
+.auth-tabs { display: flex; gap: 6px; margin-bottom: 20px; background: var(--bg); border-radius: 10px; padding: 4px; }
+.auth-tab {
+flex: 1; text-align: center; padding: 9px 0; font-size: 12.5px; font-weight: 700; color: var(--muted);
+border-radius: 8px; cursor: pointer; transition: all .12s;
+}
+.auth-tab.active { background: var(--navy-900); color: #fff; }
+.auth-title { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+.auth-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+.auth-error {
+font-size: 12px; color: #C0392B; background: #FDEDEB; border-radius: 8px; padding: 9px 12px;
+margin-bottom: 12px; display: none;
+}
+.auth-error.show { display: block; }
+.auth-submit-btn {
+width: 100%; background: linear-gradient(135deg, var(--navy-900), var(--navy-700)); color: #fff;
+border: none; border-radius: 10px; padding: 13px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+font-family: 'Space Grotesk', sans-serif; margin-top: 6px; box-shadow: 0 8px 20px -8px rgba(11,23,48,0.45);
+}
+.auth-submit-btn:disabled { opacity: 0.6; }
+.auth-note { font-size: 11px; color: #9AA3B8; margin-top: 14px; line-height: 1.5; text-align: center; }
+.paywall-card { text-align: center; }
+.paywall-icon {
+width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 16px;
+background: linear-gradient(135deg, var(--navy-900), var(--accent));
+display: flex; align-items: center; justify-content: center; color: #fff;
+font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px;
+}
+.paywall-price { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--navy-900); margin: 14px 0 4px; }
+.paywall-price span { font-size: 14px; font-weight: 600; color: var(--muted); }
 .card-list { display: flex; flex-direction: column; gap: 9px; }
 .card {
 background: #fff; border: 1px solid var(--line); border-radius: 14px;
@@ -299,6 +395,7 @@ to { opacity: 1; transform: translateY(0); }
 <div class="brand">Roomrun</div>
 </div>
 <div class="nav-links">
+<div class="account-badge" id="accountBadge" style="display:none;"></div>
 <div class="nav-link" onclick="showAlerts()">🔔 Get Notified</div>
 <div class="nav-link" onclick="showAddHouse()">🏠 Add a House</div>
 <div class="city-switch" onclick="showLanding()">📍 <span id="currentCityLabel">St Andrews</span> — change</div>
@@ -309,14 +406,28 @@ to { opacity: 1; transform: translateY(0); }
 <div class="big" id="bigNum">–</div>
 <div class="sub">rentals available right now</div>
 <div class="updated" id="updatedAt"></div>
-<div><button class="refresh-btn" id="refreshBtn" onclick="runCheck()">Refresh</button></div>
+<div><button class="refresh-btn" id="refreshBtn" onclick="runCheck(true)">Refresh</button></div>
 <div class="err-note" id="errNote"></div>
 <div class="sources-strip" id="sourcesStrip"></div>
 </div>
 
+<div class="controls-panel">
+<div class="controls-label">Filter by agency (select any)</div>
 <div class="controls-row">
 <div class="filters" id="filters"></div>
+</div>
+<div class="controls-label">Sort &amp; refine</div>
+<div class="controls-row">
 <div style="display:flex; gap:8px; flex-wrap:wrap;">
+<select class="sort-select" id="sortSelect" onchange="onSortChange()">
+<option value="default">Sort: Default</option>
+<option value="price-asc">Price: Low to High</option>
+<option value="price-desc">Price: High to Low</option>
+<option value="beds-asc">Beds: Fewest first</option>
+<option value="beds-desc">Beds: Most first</option>
+<option value="location">Location A–Z</option>
+<option value="source">Source A–Z</option>
+</select>
 <select class="sort-select" id="bedsSelect" onchange="onBedsChange()">
 <option value="All">Beds: Any</option>
 <option value="0">Studio</option>
@@ -341,18 +452,60 @@ to { opacity: 1; transform: translateY(0); }
 <option value="2000">Under £2,000</option>
 <option value="3000">Under £3,000</option>
 </select>
-<select class="sort-select" id="sortSelect" onchange="onSortChange()">
-<option value="default">Sort: Default</option>
-<option value="price-asc">Price: Low to High</option>
-<option value="price-desc">Price: High to Low</option>
-<option value="beds-asc">Beds: Fewest first</option>
-<option value="beds-desc">Beds: Most first</option>
-<option value="source">Source A–Z</option>
-</select>
+</div>
 </div>
 </div>
 
 <div class="card-list" id="list"></div>
+
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="if(event.target===this) closeLightbox()">
+<div class="lightbox-card">
+<div class="lightbox-hero">
+<button class="lightbox-close" onclick="closeLightbox()">✕</button>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M9.5 19v-5.5h5V19"/></svg>
+</div>
+<div class="lightbox-body">
+<div class="lightbox-addr" id="lbAddr"></div>
+<div class="lightbox-meta" id="lbMeta"></div>
+<div class="lightbox-price" id="lbPrice"></div>
+<div class="lightbox-actions" id="lbActions"></div>
+</div>
+</div>
+</div>
+
+<div class="auth-overlay" id="authOverlay">
+<div class="auth-card">
+<div class="auth-tabs">
+<div class="auth-tab active" id="tabSignup" onclick="setAuthMode('signup')">Sign up</div>
+<div class="auth-tab" id="tabLogin" onclick="setAuthMode('login')">Log in</div>
+</div>
+<div class="auth-title" id="authTitle">Start your free week</div>
+<div class="auth-sub" id="authSub">Full access to every St Andrews listing, free for 7 days. No card needed to start.</div>
+<div class="auth-error" id="authError"></div>
+<div class="field-group">
+<label class="field-label">Email</label>
+<input class="field-input" type="email" id="authEmail" placeholder="you@st-andrews.ac.uk" autocomplete="email">
+</div>
+<div class="field-group">
+<label class="field-label">Password</label>
+<input class="field-input" type="password" id="authPassword" placeholder="At least 8 characters" autocomplete="current-password">
+</div>
+<button class="auth-submit-btn" id="authSubmitBtn" onclick="submitAuth()">Start free trial</button>
+<div class="auth-note">By continuing you agree this is a free trial for 7 days, then £1.99/month to keep access. Cancel any time before it ends and you won't be charged.</div>
+</div>
+</div>
+
+<div class="auth-overlay" id="paywallOverlay">
+<div class="auth-card paywall-card">
+<div class="paywall-icon">R</div>
+<div class="auth-title">Your free week's up</div>
+<div class="auth-sub">Keep seeing every St Andrews listing from every agency, updated live.</div>
+<div class="paywall-price">£1.99<span>/month</span></div>
+<div class="auth-error" id="paywallError"></div>
+<button class="auth-submit-btn" onclick="startCheckout()" id="paywallBtn">Subscribe and continue</button>
+<div class="auth-note">Cancel any time. <span class="logout-link" onclick="logout()">Log out</span></div>
+</div>
+</div>
 </div>
 </div>
 
@@ -520,13 +673,131 @@ void el.offsetWidth;
 el.classList.add('view-fade');
 }
 
-function enterDashboard() {
+let authStatus = { loggedIn: false, accessGranted: false };
+let authMode = 'signup';
+
+async function checkAuthStatus() {
+try {
+const res = await fetch('/api/auth-me', { cache: 'no-store' });
+authStatus = await res.json();
+} catch (e) {
+authStatus = { loggedIn: false, accessGranted: false };
+}
+renderAccountBadge();
+return authStatus;
+}
+
+function renderAccountBadge() {
+const el = document.getElementById('accountBadge');
+if (!authStatus.loggedIn) { el.style.display = 'none'; return; }
+el.style.display = 'flex';
+if (authStatus.subscriptionActive) {
+el.innerHTML = `<span>${authStatus.email}</span><span class="logout-link" onclick="logout()">Log out</span>`;
+} else {
+el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="startCheckout()">Upgrade</span><span class="logout-link" onclick="logout()">Log out</span>`;
+}
+}
+
+function setAuthMode(mode) {
+authMode = mode;
+document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
+document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+document.getElementById('authTitle').textContent = mode === 'signup' ? 'Start your free week' : 'Welcome back';
+document.getElementById('authSub').textContent = mode === 'signup'
+? 'Full access to every St Andrews listing, free for 7 days. No card needed to start.'
+: 'Log in to keep tracking St Andrews listings.';
+document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Start free trial' : 'Log in';
+document.getElementById('authError').classList.remove('show');
+}
+
+async function submitAuth() {
+const email = document.getElementById('authEmail').value.trim();
+const password = document.getElementById('authPassword').value;
+const errEl = document.getElementById('authError');
+const btn = document.getElementById('authSubmitBtn');
+errEl.classList.remove('show');
+btn.disabled = true;
+try {
+const res = await fetch('/api/' + (authMode === 'signup' ? 'auth-signup' : 'auth-login'), {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ email, password })
+});
+const data = await res.json();
+if (!res.ok) {
+errEl.textContent = data.error || 'Something went wrong.';
+errEl.classList.add('show');
+btn.disabled = false;
+return;
+}
+document.getElementById('authOverlay').classList.remove('open');
+await proceedToDashboard();
+} catch (e) {
+errEl.textContent = 'Could not reach the server. Try again.';
+errEl.classList.add('show');
+} finally {
+btn.disabled = false;
+}
+}
+
+async function logout() {
+try { await fetch('/api/auth-logout', { method: 'POST' }); } catch (e) {}
+authStatus = { loggedIn: false, accessGranted: false };
+renderAccountBadge();
+showLanding();
+}
+
+async function startCheckout() {
+const btn = document.getElementById('paywallBtn') || document.querySelector('.upgrade-link');
+const errEl = document.getElementById('paywallError');
+if (errEl) errEl.classList.remove('show');
+try {
+const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+const data = await res.json();
+if (!res.ok || !data.url) {
+if (errEl) { errEl.textContent = data.error || 'Could not start checkout.'; errEl.classList.add('show'); }
+return;
+}
+window.location.href = data.url;
+} catch (e) {
+if (errEl) { errEl.textContent = 'Could not reach the server. Try again.'; errEl.classList.add('show'); }
+}
+}
+
+async function proceedToDashboard() {
+await checkAuthStatus();
+document.getElementById('authOverlay').classList.remove('open');
+document.getElementById('paywallOverlay').classList.remove('open');
+if (!authStatus.loggedIn) {
+setAuthMode('signup');
+document.getElementById('authOverlay').classList.add('open');
+return;
+}
+if (!authStatus.accessGranted) {
+document.getElementById('paywallOverlay').classList.add('open');
+return;
+}
 document.getElementById('landing').style.display = 'none';
 document.getElementById('dashboard').style.display = 'block';
 document.getElementById('currentCityLabel').textContent = selectedCity;
 playFade('dashboard');
 runCheck();
 }
+
+function enterDashboard() {
+proceedToDashboard();
+}
+
+// If we're bouncing back from Stripe Checkout, re-check status right away so a successful
+// subscription (webhook usually lands within a second or two) unlocks the app without a
+// manual refresh.
+(function handleCheckoutReturn() {
+const params = new URLSearchParams(window.location.search);
+if (params.get('checkout')) {
+window.history.replaceState({}, '', window.location.pathname);
+checkAuthStatus();
+}
+})();
 
 function showLanding() {
 hideAllViews();
@@ -842,21 +1113,30 @@ return `<span class="source-pill${has ? ' has-results' : ''}"><span class="sourc
 }
 
 let allListings = [];
-let activeFilter = 'All';
+let activeFilters = new Set(); // empty set = show all agencies
 let activeSort = 'default';
 let activeBeds = 'All';
 let activePriceMax = 0;
 let activePriceMin = 0;
 
 function renderFilters() {
-const sources = ['All', ...new Set(allListings.map(l => l.source))];
+const sources = [...new Set(allListings.map(l => l.source))];
 const el = document.getElementById('filters');
 el.innerHTML = '';
+const allBtn = document.createElement('button');
+allBtn.className = 'filter-btn' + (activeFilters.size === 0 ? ' active' : '');
+allBtn.textContent = 'All';
+allBtn.onclick = () => { activeFilters.clear(); renderFilters(); renderList(); };
+el.appendChild(allBtn);
 sources.forEach(s => {
 const btn = document.createElement('button');
-btn.className = 'filter-btn' + (s === activeFilter ? ' active' : '');
+const on = activeFilters.has(s);
+btn.className = 'filter-btn' + (on ? ' multi-active' : '');
 btn.textContent = s;
-btn.onclick = () => { activeFilter = s; renderFilters(); renderList(); };
+btn.onclick = () => {
+if (activeFilters.has(s)) activeFilters.delete(s); else activeFilters.add(s);
+renderFilters(); renderList();
+};
 el.appendChild(btn);
 });
 }
@@ -882,7 +1162,7 @@ renderList();
 }
 
 function getSortedFiltered() {
-let items = activeFilter === 'All' ? [...allListings] : allListings.filter(l => l.source === activeFilter);
+let items = activeFilters.size === 0 ? [...allListings] : allListings.filter(l => activeFilters.has(l.source));
 if (activeBeds !== 'All') {
 const n = parseInt(activeBeds, 10);
 items = items.filter(l => l.beds != null && (n === 5 ? l.beds >= 5 : l.beds === n));
@@ -901,6 +1181,8 @@ items.sort((a, b) => (b.priceValue ?? -Infinity) - (a.priceValue ?? -Infinity));
 items.sort((a, b) => (a.beds ?? Infinity) - (b.beds ?? Infinity));
 } else if (activeSort === 'beds-desc') {
 items.sort((a, b) => (b.beds ?? -Infinity) - (a.beds ?? -Infinity));
+} else if (activeSort === 'location') {
+items.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
 } else if (activeSort === 'source') {
 items.sort((a, b) => a.source.localeCompare(b.source));
 }
@@ -957,18 +1239,28 @@ return 'mailto:' + encodeURIComponent(item.contactEmail).replace(/%40/g, '@')
 + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
 }
 
+let currentItems = [];
+
+function thumbInner(item) {
+return item.image
+? `<img src="${item.image}" alt="" loading="lazy">`
+: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M9.5 19v-5.5h5V19"/></svg>`;
+}
+
 function renderList() {
 const el = document.getElementById('list');
 const items = getSortedFiltered();
+currentItems = items;
 if (!items.length) { el.innerHTML = '<div class="empty">Nothing matches these filters right now.</div>'; return; }
 el.innerHTML = '';
-items.forEach(item => {
+items.forEach((item, idx) => {
 const meta = bedBathLabel(item);
 const card = document.createElement('div');
 card.className = 'card';
 const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">View</a>` : (item.contact ? `<span class="card-contact">${item.contact}</span>` : '');
 const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
 card.innerHTML = `
+<div class="card-thumb" onclick="openLightboxAt(${idx})">${thumbInner(item)}</div>
 <div class="card-main">
 <div class="card-addr"><span class="src ${item.tag}">${item.source}</span>${item.address}</div>
 ${meta ? `<div class="card-meta">${meta}</div>` : ''}
@@ -980,7 +1272,26 @@ el.appendChild(card);
 });
 }
 
-async function runCheck() {
+// Quick-look popup: shows what we already know about a listing (address, beds/baths, price,
+// source) plus its action buttons, without leaving the list. Real listing photos aren't pulled
+// in yet — most agency sites don't expose them without a much heavier per-property fetch, which
+// would slow refresh back down — so this uses a clean placeholder graphic until that's built out.
+function openLightboxAt(idx) {
+const item = currentItems[idx];
+if (!item) return;
+document.getElementById('lbAddr').textContent = item.address;
+document.getElementById('lbMeta').textContent = [item.source, bedBathLabel(item)].filter(Boolean).join(' · ');
+document.getElementById('lbPrice').textContent = item.price || '';
+const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">View listing</a>` : '';
+const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
+document.getElementById('lbActions').innerHTML = viewBtn + viewingBtn;
+document.getElementById('lightboxOverlay').classList.add('open');
+}
+function closeLightbox() {
+document.getElementById('lightboxOverlay').classList.remove('open');
+}
+
+async function runCheck(force) {
 const btn = document.getElementById('refreshBtn');
 btn.disabled = true; btn.textContent = 'Checking…';
 document.getElementById('errNote').textContent = '';
@@ -991,7 +1302,8 @@ const cfg = CITY_CONFIG[selectedCity];
 if (!allListings.length) renderSkeleton(6);
 
 try {
-const res = await fetch('/api/listings?city=' + encodeURIComponent(selectedCity), { cache: 'no-store' });
+const url = '/api/listings?city=' + encodeURIComponent(selectedCity) + (force ? '&force=1' : '');
+const res = await fetch(url, { cache: 'no-store' });
 const data = await res.json();
 allListings = [...cfg.staticListings, ...(data.listings || [])];
 document.getElementById('bigNum').textContent = allListings.length;
