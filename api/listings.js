@@ -43,18 +43,31 @@ const HTT_OPTS = {
 // scraping restriction — these sites have no anti-scraping clause in their T&Cs, see CITY_SOURCES
 // comment below) that rejects requests self-identifying as a bot with a 415/403. Sending the same
 // header set a real browser sends avoids tripping that, without misrepresenting what we're doing.
-async function fetchText(url) {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-GB,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br'
-    }
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
-  const html = await res.text();
-  return convert(html, HTT_OPTS);
+// Each source gets its own hard timeout — one slow/hanging agency site used to be able to
+// stall the entire refresh (Promise.all waits for the slowest member), which was most of the
+// "refresh takes forever" complaint. 10s is generous for plain HTML fetches but still bounded.
+async function fetchText(url, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 10000);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-GB,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br'
+      }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
+    const html = await res.text();
+    return convert(html, HTT_OPTS);
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Timed out fetching ' + url);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // html-to-text can render headings in ALL CAPS depending on the site's markup — normalize for display
@@ -532,14 +545,27 @@ const CITY_SOURCES = {
 // How long a scraped result stays "fresh" before the next request triggers a real re-check.
 // Community ("Added by students") listings are never cached — they're a cheap Redis read and
 // should show up immediately after someone submits one, not wait for the next scrape window.
-const CACHE_TTL_SECONDS = 300; // 5 minutes
+// Shortened from 5 minutes: background/initial loads still hit this cache for a fast page
+// load, but the Refresh button now sends force=1 and skips straight past it (see handler below),
+// so "click Refresh" always means a real, right-now check rather than up-to-5-minute-old data.
+const CACHE_TTL_SECONDS = 150; // 2.5 minutes
+
+function withHardCap(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' exceeded ' + ms + 'ms')), ms))
+  ]);
+}
 
 async function scrapeLive(sources) {
   const listings = [];
   const errors = [];
   await Promise.all(sources.map(async (src) => {
     try {
-      listings.push(...(await src.run()));
+      // 18s hard cap per source (covers puppeteer-based sources too) so a single stuck
+      // site can never drag the whole refresh out — it just gets reported as an error
+      // and everything else still comes back fast.
+      listings.push(...(await withHardCap(src.run(), 18000, src.name)));
     } catch (e) {
       // Include a snippet of the stack, not just e.message, since JS-rendered sources
       // (Lawson & Thompson, Studentpad) fail inside puppeteer/chromium and a bare message
@@ -552,15 +578,17 @@ async function scrapeLive(sources) {
   return { listings, errors, checkedAt: new Date().toISOString() };
 }
 
-async function getSourceData(city, sources) {
+async function getSourceData(city, sources, force) {
   const cacheKey = 'srccache:' + city;
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return typeof cached === 'string' ? JSON.parse(cached) : cached;
+  if (!force) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return typeof cached === 'string' ? JSON.parse(cached) : cached;
+      }
+    } catch (e) {
+      // Redis unreachable, fall through to a live scrape rather than failing the request.
     }
-  } catch (e) {
-    // Redis unreachable — fall through to a live scrape rather than failing the request.
   }
   const fresh = await scrapeLive(sources);
   try {
@@ -578,9 +606,10 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const city = (req.query && req.query.city) || 'St Andrews';
   const sources = CITY_SOURCES[city] || [];
+  const force = req.query && (req.query.force === '1' || req.query.force === 'true');
 
   const [sourceData, communityListings] = await Promise.all([
-    getSourceData(city, sources),
+    getSourceData(city, sources, force),
     getCommunityListings(city)
   ]);
 
