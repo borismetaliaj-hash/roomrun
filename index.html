@@ -161,6 +161,37 @@ border: 1.5px solid var(--line); background: var(--bg); border-radius: 10px;
 padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
 }
 
+/* ---------- Price range slider ---------- */
+.price-slider-wrap { width: 100%; padding: 4px 4px 2px; }
+.price-slider-value { font-size: 12.5px; font-weight: 700; color: var(--navy-900); margin-bottom: 10px; }
+.price-slider { position: relative; height: 24px; }
+.price-slider-track {
+position: absolute; top: 50%; left: 0; right: 0; height: 4px; margin-top: -2px;
+background: var(--line); border-radius: 999px;
+}
+.price-slider-fill {
+position: absolute; top: 50%; height: 4px; margin-top: -2px;
+background: var(--accent); border-radius: 999px;
+}
+.price-slider input[type="range"] {
+position: absolute; top: 0; left: 0; width: 100%; height: 24px; margin: 0;
+background: transparent; appearance: none; -webkit-appearance: none; pointer-events: none;
+}
+.price-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 24px; }
+.price-slider input[type="range"]::-moz-range-track { background: transparent; height: 24px; }
+.price-slider input[type="range"]::-webkit-slider-thumb {
+-webkit-appearance: none; appearance: none; pointer-events: auto;
+width: 18px; height: 18px; border-radius: 50%; background: #fff;
+border: 3px solid var(--accent); box-shadow: 0 2px 6px rgba(11,23,48,0.25); cursor: pointer; margin-top: 3px;
+}
+.price-slider input[type="range"]::-moz-range-thumb {
+pointer-events: auto; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+border: 3px solid var(--accent); box-shadow: 0 2px 6px rgba(11,23,48,0.25); cursor: pointer;
+}
+.price-slider input#priceMinRange { z-index: 3; }
+.price-slider input#priceMaxRange { z-index: 4; }
+.filter-btn.dedupe-active { background: var(--navy-900); color: #fff; border-color: var(--navy-900); }
+
 /* ---------- Thumbnails + lightbox ---------- */
 .card-thumb {
 width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0; cursor: pointer;
@@ -437,21 +468,19 @@ to { opacity: 1; transform: translateY(0); }
 <option value="4">4 bed</option>
 <option value="5">5+ bed</option>
 </select>
-<select class="sort-select" id="priceMinSelect" onchange="onPriceMinChange()">
-<option value="0">Min price: Any</option>
-<option value="800">Over £800</option>
-<option value="1200">Over £1,200</option>
-<option value="1600">Over £1,600</option>
-<option value="2000">Over £2,000</option>
-</select>
-<select class="sort-select" id="priceMaxSelect" onchange="onPriceMaxChange()">
-<option value="0">Max price: Any</option>
-<option value="800">Under £800</option>
-<option value="1200">Under £1,200</option>
-<option value="1600">Under £1,600</option>
-<option value="2000">Under £2,000</option>
-<option value="3000">Under £3,000</option>
-</select>
+<button class="filter-btn" id="dedupeBtn" onclick="toggleDedupe()">Hide duplicates</button>
+</div>
+</div>
+<div class="controls-label">Price range</div>
+<div class="controls-row">
+<div class="price-slider-wrap">
+<div class="price-slider-value" id="priceRangeLabel">Any price</div>
+<div class="price-slider">
+<div class="price-slider-track"></div>
+<div class="price-slider-fill" id="priceRangeFill"></div>
+<input type="range" id="priceMinRange" min="0" max="3000" step="50" value="0" oninput="onPriceRangeChange()">
+<input type="range" id="priceMaxRange" min="0" max="3000" step="50" value="3000" oninput="onPriceRangeChange()">
+</div>
 </div>
 </div>
 </div>
@@ -1075,7 +1104,7 @@ return list.map(x => ({ ...x, priceValue: (function(){ const m = x.price.replace
 const CITY_CONFIG = {
 'St Andrews': {
 staticListings: withPriceValue(STATIC_LISTINGS_STA),
-sourcesChecked: ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Studentpad', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'OnTheMarket', 'SpareRoom', 'Alba'],
+sourcesChecked: ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'OnTheMarket', 'SpareRoom', 'Alba'],
 useBackend: true
 },
 'Edinburgh': {
@@ -1121,6 +1150,8 @@ let activeSort = 'default';
 let activeBeds = 'All';
 let activePriceMax = 0;
 let activePriceMin = 0;
+let hideDuplicates = false;
+const PRICE_SLIDER_MAX = 3000;
 
 function renderFilters() {
 const sources = [...new Set(allListings.map(l => l.source))];
@@ -1154,14 +1185,64 @@ activeBeds = document.getElementById('bedsSelect').value;
 renderList();
 }
 
-function onPriceMaxChange() {
-activePriceMax = parseInt(document.getElementById('priceMaxSelect').value, 10);
+function onPriceRangeChange() {
+const minEl = document.getElementById('priceMinRange');
+const maxEl = document.getElementById('priceMaxRange');
+let minV = parseInt(minEl.value, 10);
+let maxV = parseInt(maxEl.value, 10);
+// Don't let the two handles cross — keep at least one step of daylight between them.
+if (minV > maxV - 50) {
+if (document.activeElement === minEl) { maxV = Math.min(PRICE_SLIDER_MAX, minV + 50); maxEl.value = maxV; }
+else { minV = Math.max(0, maxV - 50); minEl.value = minV; }
+}
+activePriceMin = minV;
+activePriceMax = maxV >= PRICE_SLIDER_MAX ? 0 : maxV; // 0 = no cap, matches the filter logic below
+updatePriceSliderUI(minV, maxV);
 renderList();
 }
 
-function onPriceMinChange() {
-activePriceMin = parseInt(document.getElementById('priceMinSelect').value, 10);
+function updatePriceSliderUI(minV, maxV) {
+const pct = v => (v / PRICE_SLIDER_MAX) * 100;
+document.getElementById('priceRangeFill').style.left = pct(minV) + '%';
+document.getElementById('priceRangeFill').style.right = (100 - pct(maxV)) + '%';
+const label = document.getElementById('priceRangeLabel');
+if (minV <= 0 && maxV >= PRICE_SLIDER_MAX) {
+label.textContent = 'Any price';
+} else if (maxV >= PRICE_SLIDER_MAX) {
+label.textContent = '£' + minV.toLocaleString() + '+';
+} else if (minV <= 0) {
+label.textContent = 'Under £' + maxV.toLocaleString();
+} else {
+label.textContent = '£' + minV.toLocaleString() + ' – £' + maxV.toLocaleString();
+}
+}
+
+function toggleDedupe() {
+hideDuplicates = !hideDuplicates;
+document.getElementById('dedupeBtn').classList.toggle('dedupe-active', hideDuplicates);
 renderList();
+}
+
+// Same property is regularly posted by more than one agency — this collapses those down to
+// one card. Matching is best-effort (normalized address text), same spirit as the scrapers
+// themselves: good enough to be genuinely useful, not a guarantee of a perfect match.
+function normalizeAddrKey(addr) {
+return (addr || '')
+.toLowerCase()
+.replace(/\bst\b\.?/g, 'street')
+.replace(/[^a-z0-9]/g, '');
+}
+
+function dedupeByAddress(items) {
+const seen = new Set();
+const out = [];
+for (const item of items) {
+const key = normalizeAddrKey(item.address);
+if (key && seen.has(key)) continue;
+if (key) seen.add(key);
+out.push(item);
+}
+return out;
 }
 
 function getSortedFiltered() {
@@ -1189,6 +1270,7 @@ items.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
 } else if (activeSort === 'source') {
 items.sort((a, b) => a.source.localeCompare(b.source));
 }
+if (hideDuplicates) items = dedupeByAddress(items);
 return items;
 }
 
@@ -1325,6 +1407,7 @@ console.error('Roomrun source errors:', data.errors);
 renderFilters();
 renderList();
 renderSourcesStrip();
+updatePriceSliderUI(parseInt(document.getElementById('priceMinRange').value, 10), parseInt(document.getElementById('priceMaxRange').value, 10));
 } catch (e) {
 allListings = [...cfg.staticListings];
 document.getElementById('bigNum').textContent = allListings.length;
