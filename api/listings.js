@@ -503,18 +503,15 @@ const CITY_SOURCES = {
       run: async () => parseHMJ(await fetchText('http://hmjproperties.co.uk/?page_id=12'))
         .map(i => ({ source: 'HMJ Properties', tag: 'src-hmj', address: i.address, beds: i.beds, baths: null, price: i.rent || '', priceValue: parsePrice(i.rent), url: i.url, contactEmail: 'hmj@hmjproperties.co.uk' }))
     },
+    // Studentpad (room-count source) was removed 2026-07-28 — it was one of only two sources
+    // needing a full headless-Chromium page load (the other being Lawson & Thompson below,
+    // which is worth the cost since it has real per-property listings), and all it ever
+    // returned was a bare "N rooms listed" count with no address/price a student could act on.
+    // Cutting it removes one Chromium page-navigation per scrape without losing real listings.
     {
       name: 'Lawson & Thompson', url: 'https://www.lawsonthompson.co.uk/student-lettings/',
       run: async () => parseLawsonThompson(await fetchRenderedText('https://www.lawsonthompson.co.uk/student-lettings/', 1500))
         .map(i => ({ source: 'Lawson & Thompson', tag: 'src-lt', address: i.address, beds: i.beds ?? null, baths: null, price: i.status, priceValue: null, url: i.url, contactEmail: 'info@lawsonthompson.co.uk' }))
-    },
-    {
-      name: 'Studentpad (room count)', url: 'https://www.standrewsstudentpad.co.uk/Accommodation',
-      run: async () => {
-        const count = parseStudentpadCount(await fetchRenderedText('https://www.standrewsstudentpad.co.uk/Accommodation', 2000));
-        if (!count) return [];
-        return [{ source: 'Studentpad', tag: 'src-sp', address: count + ' rooms listed on the official University portal', beds: null, baths: null, price: '', priceValue: null, url: 'https://www.standrewsstudentpad.co.uk/Accommodation' }];
-      }
     },
     {
       name: 'Stand Property', url: 'https://standproperty.co.uk/for-rent/',
