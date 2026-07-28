@@ -11,6 +11,8 @@
     "puppeteer-core": "^25.1.0",
     "@sparticuz/chromium": "^149.0.0",
     "web-push": "^3.6.7",
-    "@upstash/redis": "^1.34.3"
+    "@upstash/redis": "^1.34.3",
+    "bcryptjs": "^2.4.3",
+    "stripe": "^17.4.0"
   }
 }
