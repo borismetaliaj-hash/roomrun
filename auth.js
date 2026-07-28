@@ -1,118 +1,107 @@
-// Shared auth/session helpers. Lives outside /api on purpose — Vercel's zero-config Node
-// builder turns every file directly under /api into its own route, so a shared helper module
-// has to sit in /lib (or anywhere else) to be safely require()'d without becoming an endpoint.
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { Redis } = require('@upstash/redis');
+
 const redis = Redis.fromEnv();
 
 const TRIAL_DAYS = 7;
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
+const COOKIE_NAME = 'rr_session';
 
-function getSecret() {
-  const s = process.env.SESSION_SECRET;
-  if (!s) throw new Error('SESSION_SECRET env var is not set — required to sign login sessions.');
-  return s;
-}
-
-function base64url(input) {
-  return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-function base64urlDecode(input) {
-  input = input.replace(/-/g, '+').replace(/_/g, '/');
-  while (input.length % 4) input += '=';
-  return Buffer.from(input, 'base64').toString('utf8');
-}
-
-function signToken(payload) {
-  const body = base64url(JSON.stringify(payload));
-  const sig = crypto.createHmac('sha256', getSecret()).update(body).digest('hex');
-  return body + '.' + sig;
-}
-
-function verifyToken(token) {
-  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
-  const [body, sig] = token.split('.');
-  const expected = crypto.createHmac('sha256', getSecret()).update(body).digest('hex');
-  // Constant-time compare to avoid timing attacks on the signature check.
-  const a = Buffer.from(sig || '');
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  try {
-    const payload = JSON.parse(base64urlDecode(body));
-    if (payload.exp && Date.now() > payload.exp) return null;
-    return payload;
-  } catch (e) {
-    return null;
-  }
-}
-
-function parseCookies(req) {
-  const header = req.headers && req.headers.cookie;
-  const out = {};
-  if (!header) return out;
-  header.split(';').forEach(part => {
-    const idx = part.indexOf('=');
-    if (idx === -1) return;
-    const k = part.slice(0, idx).trim();
-    const v = part.slice(idx + 1).trim();
-    out[k] = decodeURIComponent(v);
-  });
-  return out;
-}
-
-function setSessionCookie(res, email) {
-  const exp = Date.now() + SESSION_MAX_AGE_SECONDS * 1000;
-  const token = signToken({ email, exp });
-  const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
-  res.setHeader('Set-Cookie',
-    `rr_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}${isProd ? '; Secure' : ''}`
-  );
-}
-
-function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', 'rr_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+function getSessionSecret() {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error('SESSION_SECRET env var is not set');
+  return secret;
 }
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+function sign(payload) {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const hmac = crypto.createHmac('sha256', getSessionSecret()).update(body).digest('base64url');
+  return `${body}.${hmac}`;
+}
+
+function verify(token) {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  const [body, hmac] = token.split('.');
+  const expected = crypto.createHmac('sha256', getSessionSecret()).update(body).digest('base64url');
+  const a = Buffer.from(hmac);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    return JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+  } catch (e) {
+    return null;
+  }
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || '';
+  const out = {};
+  header.split(';').forEach(part => {
+    const idx = part.indexOf('=');
+    if (idx === -1) return;
+    const k = part.slice(0, idx).trim();
+    const v = part.slice(idx + 1).trim();
+    if (k) out[k] = decodeURIComponent(v);
+  });
+  return out;
+}
+
+function setSessionCookie(res, email) {
+  const token = sign({ email, iat: Date.now() });
+  const maxAge = SESSION_TTL_SECONDS;
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`);
+}
+
+function clearSessionCookie(res) {
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);
+}
+
 async function getUser(email) {
-  const raw = await redis.get('user:' + normalizeEmail(email));
-  if (!raw) return null;
-  return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  const key = `user:${normalizeEmail(email)}`;
+  const data = await redis.get(key);
+  if (!data) return null;
+  return typeof data === 'string' ? JSON.parse(data) : data;
 }
 
 async function saveUser(user) {
-  await redis.set('user:' + user.email, JSON.stringify(user));
+  const key = `user:${normalizeEmail(user.email)}`;
+  await redis.set(key, JSON.stringify(user));
 }
 
 async function getUserFromRequest(req) {
   const cookies = parseCookies(req);
-  const payload = verifyToken(cookies.rr_session);
+  const payload = verify(cookies[COOKIE_NAME]);
   if (!payload || !payload.email) return null;
   return getUser(payload.email);
 }
 
 function trialDaysLeft(user) {
-  const start = new Date(user.trialStart).getTime();
-  const elapsedMs = Date.now() - start;
-  const leftMs = TRIAL_DAYS * 24 * 60 * 60 * 1000 - elapsedMs;
-  return Math.max(0, Math.ceil(leftMs / (24 * 60 * 60 * 1000)));
+  if (!user || !user.trialStart) return 0;
+  const elapsedMs = Date.now() - user.trialStart;
+  const elapsedDays = elapsedMs / (1000 * 60 * 60 * 24);
+  const left = Math.ceil(TRIAL_DAYS - elapsedDays);
+  return Math.max(0, left);
 }
 
 function userStatus(user) {
-  if (!user) return { loggedIn: false, accessGranted: false };
-  const daysLeft = trialDaysLeft(user);
+  if (!user) {
+    return { loggedIn: false, email: null, trialDaysLeft: 0, subscriptionActive: false, subscriptionStatus: null, accessGranted: false };
+  }
   const subscriptionActive = user.subscriptionStatus === 'active';
+  const daysLeft = trialDaysLeft(user);
+  const accessGranted = subscriptionActive || daysLeft > 0;
   return {
     loggedIn: true,
     email: user.email,
     trialDaysLeft: daysLeft,
     subscriptionActive,
     subscriptionStatus: user.subscriptionStatus || 'trialing',
-    accessGranted: subscriptionActive || daysLeft > 0
+    accessGranted
   };
 }
 
