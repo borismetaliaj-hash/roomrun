@@ -405,6 +405,34 @@ from { opacity: 0; transform: translateY(10px); }
 to { opacity: 1; transform: translateY(0); }
 }
 .view-fade { animation: viewFadeIn .4s ease; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 480px) {
+  .wordmark { font-size: 42px; }
+  header.topbar { flex-wrap: wrap; row-gap: 12px; padding: 16px 16px 40px; }
+  .nav-links { flex-wrap: wrap; gap: 8px; width: 100%; }
+  .nav-link { font-size: 11px; padding: 6px 11px; }
+  .account-badge { font-size: 10.5px; padding: 5px 10px; }
+  .wrap { padding: 18px 14px 36px; }
+  .hero { padding: 24px 14px; }
+  .hero .big { font-size: 42px; }
+  .controls-panel { padding: 14px; }
+  .controls-row { flex-direction: column; align-items: stretch; }
+  .controls-row > div { width: 100%; }
+  .sort-select { flex: 1 1 auto; min-width: 0; }
+
+  /* Cards: stack instead of forcing thumb + address + price + two nowrap buttons into one
+     row — that's what was causing text to overlap on phone-width screens. The thumbnail is
+     just a placeholder house icon until real listing photos exist, so it adds clutter without
+     adding information on a small screen — hide it here rather than squeeze it in. */
+  .card { flex-wrap: wrap; row-gap: 10px; padding: 14px; }
+  .card-thumb { display: none; }
+  .card-main { flex-basis: 100%; min-width: 0; }
+  .card-addr { white-space: normal; }
+  .price { order: 2; font-size: 14px; }
+  .card-actions { order: 3; flex-direction: row; flex-wrap: wrap; margin-left: auto; align-items: center; }
+  .view-link, .viewing-link { padding: 7px 12px; font-size: 11.5px; }
+}
 </style>
 </head>
 <body>
@@ -1342,7 +1370,13 @@ items.forEach((item, idx) => {
 const meta = bedBathLabel(item);
 const card = document.createElement('div');
 card.className = 'card';
-const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">View</a>` : (item.contact ? `<span class="card-contact">${item.contact}</span>` : '');
+// Portal listings (Rightmove/OnTheMarket/SpareRoom) don't have one fixed agency email to
+// mail to — each listing there belongs to a different landlord/agent — so a "Request viewing"
+// mailto would either be blank or wrong. Their own listing page has a real enquiry form built
+// in, so the View link itself is the enquiry path for those; the label makes that clear instead
+// of silently having no second button like before.
+const viewLabel = (item.url && !item.contactEmail) ? 'View & enquire' : 'View';
+const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">${viewLabel}</a>` : (item.contact ? `<span class="card-contact">${item.contact}</span>` : '');
 const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
 card.innerHTML = `
 <div class="card-thumb" onclick="openLightboxAt(${idx})">${thumbInner(item)}</div>
@@ -1367,7 +1401,8 @@ if (!item) return;
 document.getElementById('lbAddr').textContent = item.address;
 document.getElementById('lbMeta').textContent = [item.source, bedBathLabel(item)].filter(Boolean).join(' · ');
 document.getElementById('lbPrice').textContent = item.price || '';
-const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">View listing</a>` : '';
+const lbViewLabel = (item.url && !item.contactEmail) ? 'View listing & enquire' : 'View listing';
+const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">${lbViewLabel}</a>` : '';
 const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
 document.getElementById('lbActions').innerHTML = viewBtn + viewingBtn;
 document.getElementById('lightboxOverlay').classList.add('open');
