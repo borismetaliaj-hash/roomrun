@@ -317,20 +317,27 @@ function parseHMJ(text) {
 // covering Edinburgh + St Andrews + nearby Fife villages, plain HTML, no JS needed. Filtered down
 // to the St Andrews/KY16 area here since Edinburgh isn't this dashboard's concern.
 //
-// Each card on the page (confirmed against a live fetch 2026-07-28) renders as:
+// Each card on the page renders as:
 //   Monthly rent £1,650
 //   2 bedrooms flat
 //   Kate Kennedy Court,
 //    St Andrews,
 //    Fife,
 //    KY16
-//   - 2 bedrooms
-//   - 1 bathroom
-//   - 1 public room
-// The address block always ends the moment a "- " bullet line starts (that's the feature list,
-// e.g. "- 2 bedrooms" / "- 1 bathroom"), so that's used as the hard stop for gathering address
-// lines — previously this parser only stopped on a "N bedrooms M bathrooms" line that never
-// actually occurs in this format, so it kept absorbing the whole bullet list into the address.
+//   * 2 bedrooms
+//   * 1 bathroom
+//   * 1 public room
+// (confirmed 2026-07-29 against a live scrape — a previous fix assumed the bullet lines start
+// with "-", based on a preview render that turned out not to match how html-to-text actually
+// renders this WordPress list markup: it uses "*". Since that check never matched, the address
+// block kept running straight through the whole bullet list exactly as before — this is what
+// fixes it for real.)
+//
+// The per-property URL used to be guessed by scanning nearby lines for a standproperty.co.uk
+// link, but the "Overview image" thumbnail link has no visible text once <img> tags are
+// stripped for scraping (see HTT_OPTS), so html-to-text drops it — the scan was instead
+// occasionally matching a neighbouring card's link, sending someone to the wrong house. Safer
+// to always point at the general listings page than to confidently link the wrong property.
 function parseStandProperty(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const results = [];
@@ -338,24 +345,18 @@ function parseStandProperty(text) {
     const rentM = lines[i].match(/^Monthly rent £([\d,]+)/i);
     if (!rentM) continue;
 
-    let url = null;
-    for (let j = i; j >= 0 && j >= i - 8; j--) {
-      const um = lines[j].match(/\((https:\/\/standproperty\.co\.uk\/property\/[^\)]+)\)/);
-      if (um) { url = um[1]; break; }
-    }
-
     const bedTypeM = (lines[i + 1] || '').match(/^(\d+)\s+bedrooms?\s+(\w+)/i);
     if (!bedTypeM) continue;
     const beds = parseInt(bedTypeM[1], 10);
 
-    // Address block: everything between the bed/type line and the first "- " bullet.
+    // Address block: everything between the bed/type line and the first "* " bullet.
     let addrParts = [];
     let letAgreed = false;
     let j = i + 2;
     for (; j < lines.length && j < i + 14; j++) {
       const line = lines[j];
       if (/^let agreed$/i.test(line)) { letAgreed = true; break; }
-      if (line.startsWith('-')) break;
+      if (line.startsWith('*')) break;
       if (/^Monthly rent £/i.test(line)) break; // safety net: don't run into the next card
       addrParts.push(line.replace(/,$/, ''));
     }
@@ -365,8 +366,8 @@ function parseStandProperty(text) {
     for (; j < lines.length && j < i + 20; j++) {
       const line = lines[j];
       if (/^let agreed$/i.test(line)) { letAgreed = true; continue; }
-      if (!line.startsWith('-')) break;
-      const bathM = line.match(/^-\s*(\d+)\s+bathrooms?/i);
+      if (!line.startsWith('*')) break;
+      const bathM = line.match(/^\*\s*(\d+)\s+bathrooms?/i);
       if (bathM) baths = parseInt(bathM[1], 10);
     }
 
@@ -374,7 +375,7 @@ function parseStandProperty(text) {
     const address = addrParts.join(', ').trim();
     if (!address) continue;
     if (!/KY16|st\.?\s*andrews/i.test(address)) continue; // St Andrews / KY16 area only, skip their Edinburgh stock
-    results.push({ address: titleCase(address), beds, baths, price: '£' + rentM[1] + ' pcm', url: url || 'https://standproperty.co.uk/for-rent/' });
+    results.push({ address: titleCase(address), beds, baths, price: '£' + rentM[1] + ' pcm', url: 'https://standproperty.co.uk/for-rent/' });
   }
   return results;
 }
