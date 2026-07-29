@@ -17,7 +17,12 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+    // Boris's Stripe account has "Managed Payments" enabled, which requires API version
+    // 2025-03-31.basil or newer — the installed stripe-node library defaults to an older
+    // pinned version (2025-02-24.acacia) that Stripe now rejects outright for this account
+    // ("Managed Payments is not supported on API version..."). Pinning it here explicitly
+    // avoids depending on whatever version happens to ship with the library.
+    const stripe = Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-03-31.basil' });
 
     // Some accounts (Boris's included) got a stripeCustomerId saved while the app was
     // still pointed at Stripe test mode. That ID doesn't exist under the live secret key,
