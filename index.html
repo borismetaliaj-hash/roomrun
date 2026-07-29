@@ -924,14 +924,22 @@ function enterDashboard() {
 proceedToDashboard();
 }
 
-// If we're bouncing back from Stripe Checkout, re-check status right away so a successful
-// subscription (webhook usually lands within a second or two) unlocks the app without a
-// manual refresh.
-(function handleCheckoutReturn() {
+// #landing is what shows by default (see CSS) on every single page load, including a plain
+// refresh — nothing used to check whether the visitor already had a valid session cookie
+// before showing it, so a logged-in, already-subscribed user got bounced back to the
+// marketing page every time and had to click through to log in again. This now checks
+// auth status once on load and, if there's a real session, skips straight to the dashboard
+// (proceedToDashboard also covers the Stripe-checkout-return case: it re-checks status, so a
+// subscription that just went through via webhook unlocks the app immediately too). Anonymous
+// visitors with no session are unaffected — they still land on the marketing page as before.
+(async function initSession() {
 const params = new URLSearchParams(window.location.search);
 if (params.get('checkout')) {
 window.history.replaceState({}, '', window.location.pathname);
-checkAuthStatus();
+}
+await checkAuthStatus();
+if (authStatus.loggedIn) {
+await proceedToDashboard();
 }
 })();
 
