@@ -557,74 +557,20 @@ function parsePeterMoore(text) {
   return results;
 }
 
-// Rightmove/SpareRoom search results are JS-rendered and blocked from a real live scrape,
-// so these stayed as a hand-curated snapshot — but a snapshot that's never re-checked means
-// a listing that's since been let/removed from the real site just sits here forever, looking
-// live when it isn't (this is exactly the "this house doesn't exist" bug a user hit). Each
-// one now gets a real request on every scrape; anything that 404s or shows a "no longer
-// available"-style page is silently dropped, same as if it had never been listed here.
-const CURATED_LISTINGS_STA = [
-  { source: 'Rightmove', tag: 'src-rm', address: 'St Andrews Hall, St Andrews, KY16', beds: 1, baths: 1, price: '£1,296 pcm', priceValue: 1296, url: 'https://www.rightmove.co.uk/properties/90887883' },
-  { source: 'Rightmove', tag: 'src-rm', address: '7 Carron Place, St Andrews, Fife, KY16', beds: 3, baths: 1, price: '£1,985 pcm', priceValue: 1985, url: 'https://www.rightmove.co.uk/properties/90878502' },
-  { source: 'Rightmove', tag: 'src-rm', address: 'Abbey Street, St Andrews, Fife', beds: 2, baths: 1, price: '£1,600 pcm', priceValue: 1600, url: 'https://www.rightmove.co.uk/properties/90512121' },
-  { source: 'Rightmove', tag: 'src-rm', address: 'Lumsden Crescent, St Andrews', beds: 4, baths: 2, price: '£1,850 pcm', priceValue: 1850, url: 'https://www.rightmove.co.uk/properties/90000354' },
-  { source: 'Rightmove', tag: 'src-rm', address: 'Bobby Jones Place, St Andrews, Fife, KY16', beds: 2, baths: 1, price: '£1,700 pcm', priceValue: 1700, url: 'https://www.rightmove.co.uk/properties/89924160' },
-  { source: 'Rightmove', tag: 'src-rm', address: 'St Leonards Fields House, Abbey Walk, St Andrews, KY16', beds: 2, baths: 2, price: '£2,990 pcm', priceValue: 2990, url: 'https://www.rightmove.co.uk/properties/89761173' },
-  { source: 'Rightmove', tag: 'src-rm', address: 'Morton Crescent, St Andrews', beds: 3, baths: 1, price: '£1,650 pcm', priceValue: 1650, url: 'https://www.rightmove.co.uk/properties/89307915' },
-  { source: 'Rightmove', tag: 'src-rm', address: 'Lamond Drive, St Andrews, Fife, KY16', beds: 4, baths: null, price: '£3,300 pcm', priceValue: 3300, url: 'https://www.rightmove.co.uk/properties/149596712' },
-  { source: 'Rightmove', tag: 'src-rm', address: 'Sandyhill Road, St Andrews, KY16', beds: 2, baths: 1, price: '£1,700 pcm', priceValue: 1700, url: 'https://www.rightmove.co.uk/properties/88127538' },
-  { source: 'SpareRoom', tag: 'src-spr', address: 'St. Andrews furnished room, all bills inc. (KY16)', beds: null, baths: null, price: '£1,000 pcm', priceValue: 1000, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/2502220' },
-  { source: 'SpareRoom', tag: 'src-spr', address: 'Sandyherd Court — 2-bed apartment (KY16)', beds: 2, baths: null, price: '£925 pcm', priceValue: 925, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17404101' },
-  { source: 'SpareRoom', tag: 'src-spr', address: 'Room near East Sands (KY16)', beds: null, baths: null, price: '£750 pcm', priceValue: 750, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8288086' },
-  { source: 'SpareRoom', tag: 'src-spr', address: 'Bobby Jones Apartment — 2-bed flat', beds: 2, baths: null, price: '£775 pcm', priceValue: 775, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17296613' },
-  { source: 'SpareRoom', tag: 'src-spr', address: 'Room in two-bedroom flat, 10 min to town', beds: null, baths: null, price: '£750 pcm', priceValue: 750, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17484242' },
-  { source: 'SpareRoom', tag: 'src-spr', address: 'Room, quiet setting (KY16)', beds: null, baths: null, price: '£595 pcm', priceValue: 595, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8317123' }
-];
+// Rightmove/OnTheMarket/SpareRoom's own terms explicitly prohibit automated access —
+// Rightmove's terms state outright "Rightmove prohibits the scraping of its content," and
+// OnTheMarket's terms (clause 3.3) ban any automated program beyond their homepage. So
+// these three stay 100% manually-curated static snapshots (hand-typed, refreshed by
+// occasionally re-checking by hand) in index.html, never touched by an automated request
+// from this server — see STATIC_LISTINGS_STA there. A same-day attempt to auto-verify
+// these via live HTTP requests was reverted for exactly this reason: even a lightweight
+// existence-check is still "automated access" under their terms. Alba St Andrews' listings
+// also stay in that same static snapshot (their own site, albastandrews.co.uk, has no
+// scraping restriction in its terms and could be live-scraped safely if ever wanted, but it
+// isn't wired up here — no reason to add a new live source Boris hasn't asked for).
 
-async function verifyStillListed(url) {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
-    let res;
-    try {
-      res = await fetch(url, { signal: controller.signal, redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RoomrunBot/1.0)' } });
-    } finally {
-      clearTimeout(timer);
-    }
-    // Only treat a hard 404/410 as a confirmed removal. Sites like Rightmove run bot
-    // protection that can return 403/429/5xx to an automated request that has nothing to do
-    // with whether the listing itself is still up — misreading those as "gone" would be
-    // worse than the original bug (silently hiding real, still-available listings). Anything
-    // ambiguous fails open; a genuine removal that slips through once gets caught next scrape.
-    if (res.status === 404 || res.status === 410) return false;
-    if (!res.ok) return true;
-    const body = (await res.text()).slice(0, 30000).toLowerCase();
-    const goneMarkers = [
-      'no longer available', 'no longer live', 'this property is unavailable',
-      'advert has expired', 'ad has expired', 'sorry, this property', 'page not found',
-      'property is no longer being marketed'
-    ];
-    return !goneMarkers.some((m) => body.includes(m));
-  } catch (e) {
-    // Network hiccup or timeout — fail open (keep showing it) rather than hiding a real
-    // listing over a transient error; a genuinely-removed one will just get caught next scrape.
-    return true;
-  }
-}
-
-async function verifyCuratedListings(items) {
-  const checked = await Promise.all(items.map(async (item) => {
-    const stillUp = await verifyStillListed(item.url);
-    return stillUp ? item : null;
-  }));
-  return checked.filter(Boolean);
-}
-
-// Per-city live sources. OnTheMarket/Zoopla/SpareRoom-search/Lettingweb (Alba St Andrews)
-// and Morgan Douglas (Durham, explicit "no data mining" clause) are deliberately excluded —
-// those stay manually-curated static snapshots in index.html, never live-scraped. St Andrews'
-// curated Rightmove/SpareRoom snapshot above is the exception — it's small enough (14 items)
-// to actually re-verify on every real scrape via the synthetic source below.
+// Per-city live sources. Zoopla and Morgan Douglas (Durham, explicit "no data mining"
+// clause) are deliberately excluded entirely (no static snapshot either).
 const CITY_SOURCES = {
   'St Andrews': [
     {
@@ -682,10 +628,6 @@ const CITY_SOURCES = {
           beds: i.beds, baths: i.baths, price: '', priceValue: null, url: i.url, contactEmail: 'info@standys.co.uk'
         }));
       }
-    },
-    {
-      name: 'Curated (Rightmove/SpareRoom)', url: '',
-      run: async () => verifyCuratedListings(CURATED_LISTINGS_STA)
     }
   ],
   'Durham': [
