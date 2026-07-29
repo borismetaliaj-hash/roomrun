@@ -19,23 +19,46 @@ module.exports = async function handler(req, res) {
 
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
+    // Some accounts (Boris's included) got a stripeCustomerId saved while the app was
+    // still pointed at Stripe test mode. That ID doesn't exist under the live secret key,
+    // so Stripe throws "No such customer" (resource_missing) on checkout — a real live
+    // customer just never got created for these users when we switched to live mode.
+    // createCustomer() covers both the normal first-time case and this stale-ID case.
+    async function createCustomer() {
+      const customer = await stripe.customers.create({ email: user.email });
+      user.stripeCustomerId = customer.id;
+      await saveUser(user);
+      await redis.set(`stripeCustomer:${customer.id}`, user.email);
+      return customer.id;
+    }
+
     let customerId = user.stripeCustomerId;
     if (!customerId) {
-      const customer = await stripe.customers.create({ email: user.email });
-      customerId = customer.id;
-      user.stripeCustomerId = customerId;
-      await saveUser(user);
-      await redis.set(`stripeCustomer:${customerId}`, user.email);
+      customerId = await createCustomer();
     }
 
     const origin = `https://${req.headers.host}`;
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer: customerId,
-      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-      success_url: `${origin}/?checkout=success`,
-      cancel_url: `${origin}/?checkout=cancelled`
-    });
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+        success_url: `${origin}/?checkout=success`,
+        cancel_url: `${origin}/?checkout=cancelled`
+      });
+    } catch (e) {
+      const isStaleCustomer = e && e.code === 'resource_missing' && e.param === 'customer';
+      if (!isStaleCustomer) throw e;
+      customerId = await createCustomer();
+      session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+        success_url: `${origin}/?checkout=success`,
+        cancel_url: `${origin}/?checkout=cancelled`
+      });
+    }
 
     res.status(200).json({ url: session.url });
   } catch (e) {
