@@ -800,7 +800,7 @@ el.style.display = 'flex';
 if (authStatus.subscriptionActive) {
 el.innerHTML = `<span>${authStatus.email}</span><span class="logout-link" onclick="logout()">Log out</span>`;
 } else {
-el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="openPaywall('upgrade')">Upgrade</span><span class="logout-link" onclick="logout()">Log out</span>`;
+el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="openPaywall('upgrade')">Subscribe</span><span class="logout-link" onclick="logout()">Log out</span>`;
 }
 }
 
@@ -863,7 +863,7 @@ function openPaywall(reason) {
 const titleEl = document.querySelector('#paywallOverlay .auth-title');
 const subEl = document.querySelector('#paywallOverlay .auth-sub');
 if (reason === 'upgrade') {
-if (titleEl) titleEl.textContent = 'Upgrade to Roomrun';
+if (titleEl) titleEl.textContent = 'Subscribe to Roomrun';
 if (subEl) subEl.textContent = 'Keep seeing every St Andrews listing from every agency, updated live.';
 } else {
 if (titleEl) titleEl.textContent = "Your free week's up";
