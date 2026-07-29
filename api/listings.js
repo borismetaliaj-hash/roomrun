@@ -3,7 +3,64 @@
 // converts HTML to readable text, and parses out currently-available properties.
 const { convert } = require('html-to-text');
 const { Redis } = require('@upstash/redis');
+const webpush = require('web-push');
 const redis = Redis.fromEnv();
+
+// --- Push notifications: only armed if both VAPID env vars are actually set on Vercel.
+// Without them this whole feature quietly no-ops (see notifyNewListings below) rather
+// than throwing and breaking the listings response itself. ---
+let vapidConfigured = false;
+try {
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:borismetaliaj@gmail.com',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+    vapidConfigured = true;
+  }
+} catch (e) {
+  vapidConfigured = false;
+}
+
+// Stable-ish identity for a listing so we can tell "genuinely new" apart from "same
+// property, re-scraped" — source + normalized address is good enough here since that's
+// exactly what a user would recognize as "a new one" on the dashboard.
+function listingId(item) {
+  return (item.source || '') + '::' + String(item.address || '').toLowerCase().trim();
+}
+
+// Sends one push per stored subscriber for `city`, then prunes any subscription the push
+// service reports as gone (404/410 — expired or the user uninstalled/revoked it).
+async function notifyNewListings(city, newItems) {
+  if (!vapidConfigured || !newItems.length) return;
+  const key = 'pushsubs:' + city;
+  let subsMap;
+  try {
+    subsMap = await redis.hgetall(key);
+  } catch (e) {
+    return;
+  }
+  if (!subsMap) return;
+  const entries = Object.entries(subsMap);
+  if (!entries.length) return;
+
+  const title = newItems.length === 1 ? '1 new listing in ' + city : newItems.length + ' new listings in ' + city;
+  const body = newItems.slice(0, 3).map(i => i.address).join(' · ') + (newItems.length > 3 ? '…' : '');
+  const payload = JSON.stringify({ title, body, url: 'https://roomrun.vercel.app/' });
+
+  await Promise.all(entries.map(async ([endpoint, raw]) => {
+    let sub;
+    try { sub = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return; }
+    try {
+      await webpush.sendNotification(sub, payload);
+    } catch (e) {
+      if (e && (e.statusCode === 404 || e.statusCode === 410)) {
+        try { await redis.hdel(key, endpoint); } catch (e2) { /* best-effort cleanup */ }
+      }
+    }
+  }));
+}
 
 // --- Student-added listings: read back whatever's been submitted via /api/submit-listing
 // for this city, newest first. Never throws — if Redis is unreachable we just show 0 of these
@@ -621,6 +678,32 @@ async function getSourceData(city, sources, force) {
   } catch (e) {
     // Caching is best-effort; a failed write just means the next request scrapes live again.
   }
+
+  // --- New-listing detection + push notifications ---
+  // Only runs on a real scrape (i.e. right here, never on a cache hit), so this fires at
+  // most once every CACHE_TTL_SECONDS regardless of how many people load the page.
+  try {
+    const seenKey = 'lastseen:' + city;
+    const prevIds = await redis.smembers(seenKey).catch(() => []);
+    const currentIds = fresh.listings.map(listingId);
+    // Only notify if we have a real baseline from a previous scrape AND this isn't a
+    // wholesale change (e.g. a parser rewrite shifting every id) — that guards against
+    // ever blasting "52 new listings" to everyone from a false positive.
+    if (prevIds && prevIds.length) {
+      const prevSet = new Set(prevIds);
+      const newItems = fresh.listings.filter((l) => !prevSet.has(listingId(l)));
+      if (newItems.length && newItems.length < fresh.listings.length) {
+        await notifyNewListings(city, newItems);
+      }
+    }
+    if (currentIds.length) {
+      await redis.del(seenKey).catch(() => {});
+      await redis.sadd(seenKey, ...currentIds).catch(() => {});
+    }
+  } catch (e) {
+    // Notification bookkeeping must never break the actual listings response.
+  }
+
   return fresh;
 }
 
