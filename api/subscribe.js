@@ -21,11 +21,22 @@ module.exports = async (req, res) => {
     try { body = JSON.parse(body); } catch (e) { body = null; }
   }
 
-  // index.html posts the raw PushSubscription object directly (no wrapper), so accept
-  // both that shape and an optional { subscription, city } wrapper for future callers.
+  // index.html now posts { subscription, city, filters } — but also accept a bare
+  // PushSubscription with no wrapper (the original shape) for backwards compatibility.
   const sub = body && body.subscription ? body.subscription : body;
   const city = (body && body.city) || 'St Andrews';
   const key = 'pushsubs:' + city;
+
+  // Optional notification preferences (bedrooms / price range / agencies) — filters what
+  // api/listings.js actually sends this subscriber, rather than every single new listing.
+  // Left null/empty on any field means "no restriction on that field".
+  const rawFilters = (body && body.filters) || null;
+  const filters = rawFilters ? {
+    beds: Array.isArray(rawFilters.beds) ? rawFilters.beds.filter((b) => typeof b === 'string').slice(0, 10) : [],
+    agencies: Array.isArray(rawFilters.agencies) ? rawFilters.agencies.filter((a) => typeof a === 'string').slice(0, 20) : [],
+    minPrice: (typeof rawFilters.minPrice === 'number' && isFinite(rawFilters.minPrice)) ? rawFilters.minPrice : null,
+    maxPrice: (typeof rawFilters.maxPrice === 'number' && isFinite(rawFilters.maxPrice)) ? rawFilters.maxPrice : null
+  } : null;
 
   if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
     res.status(400).json({ error: 'Invalid push subscription' });
@@ -42,7 +53,7 @@ module.exports = async (req, res) => {
       res.status(405).json({ error: 'Method not allowed' });
       return;
     }
-    await redis.hset(key, { [sub.endpoint]: JSON.stringify(sub) });
+    await redis.hset(key, { [sub.endpoint]: JSON.stringify({ subscription: sub, filters }) });
     res.status(200).json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not save subscription' });
