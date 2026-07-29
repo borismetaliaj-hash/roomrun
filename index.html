@@ -940,23 +940,17 @@ function enterDashboard() {
 proceedToDashboard();
 }
 
-// #landing is what shows by default (see CSS) on every single page load, including a plain
-// refresh — nothing used to check whether the visitor already had a valid session cookie
-// before showing it, so a logged-in, already-subscribed user got bounced back to the
-// marketing page every time and had to click through to log in again. This now checks
-// auth status once on load and, if there's a real session, skips straight to the dashboard
-// (proceedToDashboard also covers the Stripe-checkout-return case: it re-checks status, so a
-// subscription that just went through via webhook unlocks the app immediately too). Anonymous
-// visitors with no session are unaffected — they still land on the marketing page as before.
+// #landing always shows first on load — that's intentional (Boris wants the "View Listings"
+// button to be a real click-through, not skipped). This just quietly refreshes authStatus in
+// the background on every load (covers the Stripe-checkout-return case too: a subscription
+// that just went through via webhook is already reflected by the time "View Listings" is
+// clicked), without forcing navigation straight into the dashboard.
 (async function initSession() {
 const params = new URLSearchParams(window.location.search);
 if (params.get('checkout')) {
 window.history.replaceState({}, '', window.location.pathname);
 }
 await checkAuthStatus();
-if (authStatus.loggedIn) {
-await proceedToDashboard();
-}
 })();
 
 function showLanding() {
