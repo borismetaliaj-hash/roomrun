@@ -30,8 +30,27 @@ function listingId(item) {
   return (item.source || '') + '::' + String(item.address || '').toLowerCase().trim();
 }
 
-// Sends one push per stored subscriber for `city`, then prunes any subscription the push
-// service reports as gone (404/410 — expired or the user uninstalled/revoked it).
+// A subscriber's stored notification preferences (bedrooms / price range / agencies) —
+// null/empty on any field means "no restriction on that field". Missing data on the
+// listing itself (e.g. a source with no priceValue) never excludes it — only positive
+// evidence of a mismatch does, so a real preference never silently swallows a listing
+// just because that particular agency doesn't report beds/price.
+function matchesFilters(item, filters) {
+  if (!filters) return true;
+  if (filters.minPrice != null && item.priceValue != null && item.priceValue < filters.minPrice) return false;
+  if (filters.maxPrice != null && item.priceValue != null && item.priceValue > filters.maxPrice) return false;
+  if (filters.beds && filters.beds.length && item.beds != null) {
+    const bedsOk = filters.beds.some((b) => (b === '4+' ? item.beds >= 4 : Number(b) === item.beds));
+    if (!bedsOk) return false;
+  }
+  if (filters.agencies && filters.agencies.length && !filters.agencies.includes(item.source)) return false;
+  return true;
+}
+
+// Sends one push per stored subscriber for `city` — filtered down to just the new listings
+// that actually match their saved preferences, so someone who only asked about 1-bed HMJ
+// Properties places doesn't get pinged (or see an inflated count) over unrelated ones. Then
+// prunes any subscription the push service reports as gone (404/410 — expired or revoked).
 async function notifyNewListings(city, newItems) {
   if (!vapidConfigured || !newItems.length) return;
   const key = 'pushsubs:' + city;
@@ -45,13 +64,22 @@ async function notifyNewListings(city, newItems) {
   const entries = Object.entries(subsMap);
   if (!entries.length) return;
 
-  const title = newItems.length === 1 ? '1 new listing in ' + city : newItems.length + ' new listings in ' + city;
-  const body = newItems.slice(0, 3).map(i => i.address).join(' · ') + (newItems.length > 3 ? '…' : '');
-  const payload = JSON.stringify({ title, body, url: 'https://roomrun.vercel.app/' });
-
   await Promise.all(entries.map(async ([endpoint, raw]) => {
-    let sub;
-    try { sub = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return; }
+    let record;
+    try { record = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return; }
+    // Backwards-compatible with subscriptions saved before filters existed (bare
+    // subscription object, no { subscription, filters } wrapper).
+    const sub = record && record.subscription ? record.subscription : record;
+    const filters = (record && record.filters) || null;
+    if (!sub || !sub.endpoint) return;
+
+    const matched = newItems.filter((item) => matchesFilters(item, filters));
+    if (!matched.length) return;
+
+    const title = matched.length === 1 ? '1 new listing in ' + city : matched.length + ' new listings in ' + city;
+    const body = matched.slice(0, 3).map((i) => i.address).join(' · ') + (matched.length > 3 ? '…' : '');
+    const payload = JSON.stringify({ title, body, url: 'https://roomrun.vercel.app/' });
+
     try {
       await webpush.sendNotification(sub, payload);
     } catch (e) {
@@ -529,9 +557,74 @@ function parsePeterMoore(text) {
   return results;
 }
 
-// Per-city live sources. Rightmove/OnTheMarket/Zoopla/SpareRoom/Lettingweb (Alba St Andrews)
+// Rightmove/SpareRoom search results are JS-rendered and blocked from a real live scrape,
+// so these stayed as a hand-curated snapshot — but a snapshot that's never re-checked means
+// a listing that's since been let/removed from the real site just sits here forever, looking
+// live when it isn't (this is exactly the "this house doesn't exist" bug a user hit). Each
+// one now gets a real request on every scrape; anything that 404s or shows a "no longer
+// available"-style page is silently dropped, same as if it had never been listed here.
+const CURATED_LISTINGS_STA = [
+  { source: 'Rightmove', tag: 'src-rm', address: 'St Andrews Hall, St Andrews, KY16', beds: 1, baths: 1, price: '£1,296 pcm', priceValue: 1296, url: 'https://www.rightmove.co.uk/properties/90887883' },
+  { source: 'Rightmove', tag: 'src-rm', address: '7 Carron Place, St Andrews, Fife, KY16', beds: 3, baths: 1, price: '£1,985 pcm', priceValue: 1985, url: 'https://www.rightmove.co.uk/properties/90878502' },
+  { source: 'Rightmove', tag: 'src-rm', address: 'Abbey Street, St Andrews, Fife', beds: 2, baths: 1, price: '£1,600 pcm', priceValue: 1600, url: 'https://www.rightmove.co.uk/properties/90512121' },
+  { source: 'Rightmove', tag: 'src-rm', address: 'Lumsden Crescent, St Andrews', beds: 4, baths: 2, price: '£1,850 pcm', priceValue: 1850, url: 'https://www.rightmove.co.uk/properties/90000354' },
+  { source: 'Rightmove', tag: 'src-rm', address: 'Bobby Jones Place, St Andrews, Fife, KY16', beds: 2, baths: 1, price: '£1,700 pcm', priceValue: 1700, url: 'https://www.rightmove.co.uk/properties/89924160' },
+  { source: 'Rightmove', tag: 'src-rm', address: 'St Leonards Fields House, Abbey Walk, St Andrews, KY16', beds: 2, baths: 2, price: '£2,990 pcm', priceValue: 2990, url: 'https://www.rightmove.co.uk/properties/89761173' },
+  { source: 'Rightmove', tag: 'src-rm', address: 'Morton Crescent, St Andrews', beds: 3, baths: 1, price: '£1,650 pcm', priceValue: 1650, url: 'https://www.rightmove.co.uk/properties/89307915' },
+  { source: 'Rightmove', tag: 'src-rm', address: 'Lamond Drive, St Andrews, Fife, KY16', beds: 4, baths: null, price: '£3,300 pcm', priceValue: 3300, url: 'https://www.rightmove.co.uk/properties/149596712' },
+  { source: 'Rightmove', tag: 'src-rm', address: 'Sandyhill Road, St Andrews, KY16', beds: 2, baths: 1, price: '£1,700 pcm', priceValue: 1700, url: 'https://www.rightmove.co.uk/properties/88127538' },
+  { source: 'SpareRoom', tag: 'src-spr', address: 'St. Andrews furnished room, all bills inc. (KY16)', beds: null, baths: null, price: '£1,000 pcm', priceValue: 1000, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/2502220' },
+  { source: 'SpareRoom', tag: 'src-spr', address: 'Sandyherd Court — 2-bed apartment (KY16)', beds: 2, baths: null, price: '£925 pcm', priceValue: 925, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17404101' },
+  { source: 'SpareRoom', tag: 'src-spr', address: 'Room near East Sands (KY16)', beds: null, baths: null, price: '£750 pcm', priceValue: 750, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8288086' },
+  { source: 'SpareRoom', tag: 'src-spr', address: 'Bobby Jones Apartment — 2-bed flat', beds: 2, baths: null, price: '£775 pcm', priceValue: 775, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17296613' },
+  { source: 'SpareRoom', tag: 'src-spr', address: 'Room in two-bedroom flat, 10 min to town', beds: null, baths: null, price: '£750 pcm', priceValue: 750, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17484242' },
+  { source: 'SpareRoom', tag: 'src-spr', address: 'Room, quiet setting (KY16)', beds: null, baths: null, price: '£595 pcm', priceValue: 595, url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8317123' }
+];
+
+async function verifyStillListed(url) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    let res;
+    try {
+      res = await fetch(url, { signal: controller.signal, redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RoomrunBot/1.0)' } });
+    } finally {
+      clearTimeout(timer);
+    }
+    // Only treat a hard 404/410 as a confirmed removal. Sites like Rightmove run bot
+    // protection that can return 403/429/5xx to an automated request that has nothing to do
+    // with whether the listing itself is still up — misreading those as "gone" would be
+    // worse than the original bug (silently hiding real, still-available listings). Anything
+    // ambiguous fails open; a genuine removal that slips through once gets caught next scrape.
+    if (res.status === 404 || res.status === 410) return false;
+    if (!res.ok) return true;
+    const body = (await res.text()).slice(0, 30000).toLowerCase();
+    const goneMarkers = [
+      'no longer available', 'no longer live', 'this property is unavailable',
+      'advert has expired', 'ad has expired', 'sorry, this property', 'page not found',
+      'property is no longer being marketed'
+    ];
+    return !goneMarkers.some((m) => body.includes(m));
+  } catch (e) {
+    // Network hiccup or timeout — fail open (keep showing it) rather than hiding a real
+    // listing over a transient error; a genuinely-removed one will just get caught next scrape.
+    return true;
+  }
+}
+
+async function verifyCuratedListings(items) {
+  const checked = await Promise.all(items.map(async (item) => {
+    const stillUp = await verifyStillListed(item.url);
+    return stillUp ? item : null;
+  }));
+  return checked.filter(Boolean);
+}
+
+// Per-city live sources. OnTheMarket/Zoopla/SpareRoom-search/Lettingweb (Alba St Andrews)
 // and Morgan Douglas (Durham, explicit "no data mining" clause) are deliberately excluded —
-// those stay manually-curated static snapshots in index.html, never live-scraped.
+// those stay manually-curated static snapshots in index.html, never live-scraped. St Andrews'
+// curated Rightmove/SpareRoom snapshot above is the exception — it's small enough (14 items)
+// to actually re-verify on every real scrape via the synthetic source below.
 const CITY_SOURCES = {
   'St Andrews': [
     {
@@ -589,6 +682,10 @@ const CITY_SOURCES = {
           beds: i.beds, baths: i.baths, price: '', priceValue: null, url: i.url, contactEmail: 'info@standys.co.uk'
         }));
       }
+    },
+    {
+      name: 'Curated (Rightmove/SpareRoom)', url: '',
+      run: async () => verifyCuratedListings(CURATED_LISTINGS_STA)
     }
   ],
   'Durham': [
