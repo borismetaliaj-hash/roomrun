@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/listings.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/listings?city=St%20Andrews&force=1",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
