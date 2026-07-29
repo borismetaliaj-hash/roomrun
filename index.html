@@ -798,7 +798,7 @@ const el = document.getElementById('accountBadge');
 if (!authStatus.loggedIn) { el.style.display = 'none'; return; }
 el.style.display = 'flex';
 if (authStatus.subscriptionActive) {
-el.innerHTML = `<span>${authStatus.email}</span><span class="logout-link" onclick="logout()">Log out</span>`;
+el.innerHTML = `<span>${authStatus.email}</span><span class="upgrade-link" onclick="openBillingPortal()">Manage subscription</span><span class="logout-link" onclick="logout()">Log out</span>`;
 } else {
 el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="openPaywall('upgrade')">Subscribe</span><span class="logout-link" onclick="logout()">Log out</span>`;
 }
@@ -894,6 +894,22 @@ return;
 window.location.href = data.url;
 } catch (e) {
 if (errEl) { errEl.textContent = 'Could not reach the server. Try again.'; errEl.classList.add('show'); }
+}
+}
+
+// Lets an already-subscribed user cancel or update their card themselves via Stripe's
+// hosted Billing Portal, instead of having to email Boris to cancel it for them manually.
+async function openBillingPortal() {
+try {
+const res = await fetch('/api/create-portal-session', { method: 'POST' });
+const data = await res.json();
+if (!res.ok || !data.url) {
+alert(data.error || 'Could not open the billing portal. Try again.');
+return;
+}
+window.location.href = data.url;
+} catch (e) {
+alert('Could not reach the server. Try again.');
 }
 }
 
