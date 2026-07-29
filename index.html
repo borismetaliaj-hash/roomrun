@@ -282,7 +282,18 @@ font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px;
 background: #fff; border: 1px solid var(--line); border-radius: 14px;
 padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
 transition: box-shadow .15s, transform .15s;
+position: relative;
 }
+.flag-btn {
+position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); border: none;
+width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+justify-content: center; color: var(--muted); padding: 0; transition: color .12s, transform .1s;
+}
+.flag-btn:hover { transform: scale(1.08); }
+.flag-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.flag-btn.flagged { color: var(--accent); }
+.flag-btn.flagged svg { fill: var(--accent); }
+.filter-btn.fav-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .card:hover { box-shadow: 0 6px 20px rgba(11,23,48,0.08); transform: translateY(-1px); }
 .card-main { flex: 1; min-width: 0; }
 .card-addr { font-weight: 600; font-size: 14.5px; }
@@ -430,7 +441,9 @@ to { opacity: 1; transform: translateY(0); }
   .card-main { flex-basis: 100%; min-width: 0; }
   .card-addr { white-space: normal; }
   .price { order: 2; font-size: 14px; }
-  .card-actions { order: 3; flex-direction: row; flex-wrap: wrap; margin-left: auto; align-items: center; }
+  /* Keep Request viewing stacked directly below View (not side by side) even on phone
+     width — matches the desktop layout and is what actually fits comfortably here. */
+  .card-actions { order: 3; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
   .view-link, .viewing-link { padding: 7px 12px; font-size: 11.5px; }
 }
 </style>
@@ -497,6 +510,7 @@ to { opacity: 1; transform: translateY(0); }
 <option value="5">5+ bed</option>
 </select>
 <button class="filter-btn" id="dedupeBtn" onclick="toggleDedupe()">Hide duplicates</button>
+<button class="filter-btn" id="favBtn" onclick="toggleFavoritesOnly()">♥ Saved</button>
 </div>
 </div>
 <div class="controls-label">Price range</div>
@@ -519,6 +533,9 @@ to { opacity: 1; transform: translateY(0); }
 <div class="lightbox-card">
 <div class="lightbox-hero">
 <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+<button class="flag-btn" id="lbFlagBtn" style="position:absolute; top:10px; left:10px; right:auto;" aria-label="Save this listing">
+<svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
+</button>
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M9.5 19v-5.5h5V19"/></svg>
 </div>
 <div class="lightbox-body">
@@ -576,6 +593,29 @@ to { opacity: 1; transform: translateY(0); }
 <div class="panel-eyebrow">Step 1</div>
 <div class="panel-title">Turn on push notifications</div>
 <p class="panel-intro">Get pinged the moment a new listing goes up — no need to keep checking back. Works even when the app is closed, once it's installed to your home screen.</p>
+
+<div class="field-group">
+<label class="field-label">Only notify me about (optional — leave blank for everything)</label>
+</div>
+<div class="field-group">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Bedrooms</label>
+<div class="filters" id="notifyBedsRow"></div>
+</div>
+<div class="field-group" style="display:flex; gap:10px;">
+<div style="flex:1;">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Min price (pcm)</label>
+<input class="field-input" id="notifyMinPrice" type="number" inputmode="numeric" placeholder="Any">
+</div>
+<div style="flex:1;">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Max price (pcm)</label>
+<input class="field-input" id="notifyMaxPrice" type="number" inputmode="numeric" placeholder="Any">
+</div>
+</div>
+<div class="field-group">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Agencies</label>
+<div class="filters" id="notifyAgenciesRow"></div>
+</div>
+
 <button class="save-btn" id="notifyBtn" onclick="enableNotifications()">Enable notifications</button>
 <span class="save-note" id="notifyNote" style="display:none;"></span>
 </div>
@@ -679,10 +719,19 @@ userVisibleOnly: true,
 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 });
 }
+const minPriceVal = document.getElementById('notifyMinPrice').value;
+const maxPriceVal = document.getElementById('notifyMaxPrice').value;
+const filters = {
+beds: [...notifyBedsSelected],
+agencies: [...notifyAgenciesSelected],
+minPrice: minPriceVal === '' ? null : Number(minPriceVal),
+maxPrice: maxPriceVal === '' ? null : Number(maxPriceVal)
+};
+saveNotifyPrefs();
 await fetch('/api/subscribe', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify(sub)
+body: JSON.stringify({ subscription: sub, city: selectedCity, filters })
 });
 note.textContent = 'Notifications on ✓';
 note.style.display = 'inline';
@@ -751,7 +800,7 @@ el.style.display = 'flex';
 if (authStatus.subscriptionActive) {
 el.innerHTML = `<span>${authStatus.email}</span><span class="logout-link" onclick="logout()">Log out</span>`;
 } else {
-el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="startCheckout()">Upgrade</span><span class="logout-link" onclick="logout()">Log out</span>`;
+el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="openPaywall('upgrade')">Upgrade</span><span class="logout-link" onclick="logout()">Log out</span>`;
 }
 }
 
@@ -804,9 +853,36 @@ renderAccountBadge();
 showLanding();
 }
 
+// Clicking "Upgrade" in the top nav (still mid-trial) used to call startCheckout()
+// directly without ever opening #paywallOverlay — so if the checkout request failed for
+// any reason, the error message got written into an element that was still display:none,
+// making it look like the button did nothing at all. This opens the modal first (with
+// copy that makes sense for someone upgrading early, not "your free week's up"), so any
+// error is actually visible, and success just redirects straight to Stripe anyway.
+function openPaywall(reason) {
+const titleEl = document.querySelector('#paywallOverlay .auth-title');
+const subEl = document.querySelector('#paywallOverlay .auth-sub');
+if (reason === 'upgrade') {
+if (titleEl) titleEl.textContent = 'Upgrade to Roomrun';
+if (subEl) subEl.textContent = 'Keep seeing every St Andrews listing from every agency, updated live.';
+} else {
+if (titleEl) titleEl.textContent = "Your free week's up";
+if (subEl) subEl.textContent = 'Keep seeing every St Andrews listing from every agency, updated live.';
+}
+const errEl = document.getElementById('paywallError');
+if (errEl) errEl.classList.remove('show');
+document.getElementById('landing').style.display = 'none';
+document.getElementById('dashboard').style.display = 'block';
+document.getElementById('paywallOverlay').classList.add('open');
+}
+
 async function startCheckout() {
 const btn = document.getElementById('paywallBtn') || document.querySelector('.upgrade-link');
 const errEl = document.getElementById('paywallError');
+// Belt-and-braces: make sure the modal holding the error message is actually open,
+// no matter what triggered startCheckout(), so a failure is never silently invisible.
+const overlay = document.getElementById('paywallOverlay');
+if (overlay && !overlay.classList.contains('open')) overlay.classList.add('open');
 if (errEl) errEl.classList.remove('show');
 try {
 const res = await fetch('/api/create-checkout-session', { method: 'POST' });
@@ -947,7 +1023,72 @@ hideAllViews();
 document.getElementById('alertsView').style.display = 'block';
 loadMyDetails();
 renderSiteCards();
+loadNotifyPrefs();
+renderNotifyFilters();
 playFade('alertsView');
+}
+
+// --- Notification preferences: which new listings someone actually wants pinged about.
+// Persisted in localStorage (like name/email above) so the chips stay picked next time this
+// panel opens, and sent up to /api/subscribe alongside the push subscription itself so
+// api/listings.js's send step can filter server-side before notifying anyone.
+const NOTIFY_BED_OPTIONS = ['1', '2', '3', '4+'];
+const NOTIFY_AGENCY_OPTIONS = ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'SpareRoom'];
+let notifyBedsSelected = new Set();
+let notifyAgenciesSelected = new Set();
+
+function loadNotifyPrefs() {
+try {
+const raw = localStorage.getItem('rw_notifyPrefs');
+if (!raw) return;
+const p = JSON.parse(raw);
+notifyBedsSelected = new Set(p.beds || []);
+notifyAgenciesSelected = new Set(p.agencies || []);
+if (p.minPrice != null) document.getElementById('notifyMinPrice').value = p.minPrice;
+if (p.maxPrice != null) document.getElementById('notifyMaxPrice').value = p.maxPrice;
+} catch (e) { /* corrupt/missing — just start blank */ }
+}
+
+function saveNotifyPrefs() {
+const minPrice = document.getElementById('notifyMinPrice').value;
+const maxPrice = document.getElementById('notifyMaxPrice').value;
+localStorage.setItem('rw_notifyPrefs', JSON.stringify({
+beds: [...notifyBedsSelected], agencies: [...notifyAgenciesSelected],
+minPrice: minPrice === '' ? null : Number(minPrice),
+maxPrice: maxPrice === '' ? null : Number(maxPrice)
+}));
+}
+
+function renderNotifyFilters() {
+const bedsEl = document.getElementById('notifyBedsRow');
+bedsEl.innerHTML = '';
+NOTIFY_BED_OPTIONS.forEach(b => {
+const btn = document.createElement('button');
+btn.type = 'button';
+btn.className = 'filter-btn' + (notifyBedsSelected.has(b) ? ' multi-active' : '');
+btn.textContent = b + (b === '4+' ? ' beds' : (b === '1' ? ' bed' : ' beds'));
+btn.onclick = () => {
+if (notifyBedsSelected.has(b)) notifyBedsSelected.delete(b); else notifyBedsSelected.add(b);
+saveNotifyPrefs();
+renderNotifyFilters();
+};
+bedsEl.appendChild(btn);
+});
+
+const agEl = document.getElementById('notifyAgenciesRow');
+agEl.innerHTML = '';
+NOTIFY_AGENCY_OPTIONS.forEach(a => {
+const btn = document.createElement('button');
+btn.type = 'button';
+btn.className = 'filter-btn' + (notifyAgenciesSelected.has(a) ? ' multi-active' : '');
+btn.textContent = a;
+btn.onclick = () => {
+if (notifyAgenciesSelected.has(a)) notifyAgenciesSelected.delete(a); else notifyAgenciesSelected.add(a);
+saveNotifyPrefs();
+renderNotifyFilters();
+};
+agEl.appendChild(btn);
+});
 }
 
 function saveMyDetails() {
@@ -1131,7 +1272,14 @@ return list.map(x => ({ ...x, priceValue: (function(){ const m = x.price.replace
 // passing ?city=) vs manually curated, and what to label as "checked" in the sources strip.
 const CITY_CONFIG = {
 'St Andrews': {
+// The Rightmove/SpareRoom curated snapshot now comes back verified as part of
+// data.listings itself (api/listings.js re-checks each one's URL on every real scrape),
+// so it's no longer merged in client-side here — that used to mean a listing that had
+// actually been let/removed from the real site just stayed shown forever. staticListings
+// stays populated purely as a last-resort fallback if the API is totally unreachable
+// (see the catch block in runCheck), never merged in during normal operation.
 staticListings: withPriceValue(STATIC_LISTINGS_STA),
+staticVerifiedServerSide: true,
 sourcesChecked: ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'OnTheMarket', 'SpareRoom', 'Alba'],
 useBackend: true
 },
@@ -1273,6 +1421,39 @@ out.push(item);
 return out;
 }
 
+// --- Saved/flagged listings: purely a per-device preference (like name/email above), no
+// account or backend needed — just localStorage, keyed the same way api/listings.js tells
+// "genuinely new" listings apart (source + normalized address), so a favourite still matches
+// up correctly even if the exact listing text shifts slightly between scrapes.
+function clientListingId(item) {
+return (item.source || '') + '::' + normalizeAddrKey(item.address);
+}
+let favoritedIds = new Set();
+let showFavoritesOnly = false;
+function loadFavorites() {
+try {
+const raw = localStorage.getItem('rw_favorites');
+favoritedIds = new Set(raw ? JSON.parse(raw) : []);
+} catch (e) { favoritedIds = new Set(); }
+}
+function saveFavorites() {
+localStorage.setItem('rw_favorites', JSON.stringify([...favoritedIds]));
+}
+function isFavorited(item) {
+return favoritedIds.has(clientListingId(item));
+}
+function toggleFavorite(id) {
+if (favoritedIds.has(id)) favoritedIds.delete(id); else favoritedIds.add(id);
+saveFavorites();
+renderList();
+}
+function toggleFavoritesOnly() {
+showFavoritesOnly = !showFavoritesOnly;
+document.getElementById('favBtn').classList.toggle('fav-active', showFavoritesOnly);
+renderList();
+}
+loadFavorites(); // once, at script load — before any card ever renders
+
 function getSortedFiltered() {
 let items = activeFilters.size === 0 ? [...allListings] : allListings.filter(l => activeFilters.has(l.source));
 if (activeBeds !== 'All') {
@@ -1299,6 +1480,7 @@ items.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
 items.sort((a, b) => a.source.localeCompare(b.source));
 }
 if (hideDuplicates) items = dedupeByAddress(items);
+if (showFavoritesOnly) items = items.filter((l) => isFavorited(l));
 return items;
 }
 
@@ -1375,10 +1557,19 @@ card.className = 'card';
 // mailto would either be blank or wrong. Their own listing page has a real enquiry form built
 // in, so the View link itself is the enquiry path for those; the label makes that clear instead
 // of silently having no second button like before.
-const viewLabel = (item.url && !item.contactEmail) ? 'View & enquire' : 'View';
+// A "Request viewing" button always sits below this one when a real agency contact
+// email exists (see .card-actions). For portal sources (Rightmove/OnTheMarket/SpareRoom)
+// there's no single agency email to build that second button from, so a separate
+// "Request viewing" link genuinely can't exist there — plain "View" is clearer than a
+// label implying an enquiry action that isn't actually offered.
+const viewLabel = 'View';
 const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">${viewLabel}</a>` : (item.contact ? `<span class="card-contact">${item.contact}</span>` : '');
 const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
+const fav = isFavorited(item);
 card.innerHTML = `
+<button class="flag-btn${fav ? ' flagged' : ''}" aria-label="${fav ? 'Remove from saved' : 'Save this listing'}" title="${fav ? 'Remove from saved' : 'Save this listing'}">
+<svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
+</button>
 <div class="card-thumb" onclick="openLightboxAt(${idx})">${thumbInner(item)}</div>
 <div class="card-main">
 <div class="card-addr"><span class="src ${item.tag}">${item.source}</span>${item.address}</div>
@@ -1387,6 +1578,10 @@ ${meta ? `<div class="card-meta">${meta}</div>` : ''}
 <div class="price">${item.price || ''}</div>
 <div class="card-actions">${viewBtn}${viewingBtn}</div>
 `;
+// Set via JS reference rather than an inline onclick string — addresses can contain quotes/
+// apostrophes (e.g. "St James's Parade") that would otherwise break attribute escaping.
+const flagBtn = card.querySelector('.flag-btn');
+flagBtn.onclick = (e) => { e.stopPropagation(); toggleFavorite(clientListingId(item)); };
 el.appendChild(card);
 });
 }
@@ -1401,10 +1596,20 @@ if (!item) return;
 document.getElementById('lbAddr').textContent = item.address;
 document.getElementById('lbMeta').textContent = [item.source, bedBathLabel(item)].filter(Boolean).join(' · ');
 document.getElementById('lbPrice').textContent = item.price || '';
-const lbViewLabel = (item.url && !item.contactEmail) ? 'View listing & enquire' : 'View listing';
+const lbViewLabel = 'View listing';
 const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">${lbViewLabel}</a>` : '';
 const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
 document.getElementById('lbActions').innerHTML = viewBtn + viewingBtn;
+const lbFav = isFavorited(item);
+const lbFlagBtn = document.getElementById('lbFlagBtn');
+if (lbFlagBtn) {
+lbFlagBtn.classList.toggle('flagged', lbFav);
+lbFlagBtn.title = lbFav ? 'Remove from saved' : 'Save this listing';
+lbFlagBtn.onclick = () => {
+toggleFavorite(clientListingId(item));
+openLightboxAt(idx); // re-render just this button's state without closing the popup
+};
+}
 document.getElementById('lightboxOverlay').classList.add('open');
 }
 function closeLightbox() {
@@ -1425,7 +1630,7 @@ try {
 const url = '/api/listings?city=' + encodeURIComponent(selectedCity) + (force ? '&force=1' : '');
 const res = await fetch(url, { cache: 'no-store' });
 const data = await res.json();
-allListings = [...cfg.staticListings, ...(data.listings || [])];
+allListings = [...(cfg.staticVerifiedServerSide ? [] : cfg.staticListings), ...(data.listings || [])];
 document.getElementById('bigNum').textContent = allListings.length;
 if (cfg.useBackend) {
 lastCheckedAt = data.checkedAt;
