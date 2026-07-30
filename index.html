@@ -79,6 +79,17 @@ font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer;
 box-shadow: 0 10px 30px -8px rgba(76,126,255,0.55); letter-spacing: 0.2px;
 }
 .enter-btn:hover { filter: brightness(1.06); }
+.install-btn {
+width: 100%; background: transparent; color: rgba(255,255,255,0.85);
+border: 1px solid rgba(127,168,255,0.35); border-radius: 14px; padding: 13px; font-size: 13.5px;
+font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer; margin-top: 10px;
+transition: background .12s, border-color .12s;
+}
+.install-btn:hover { background: rgba(127,168,255,0.1); border-color: rgba(127,168,255,0.6); }
+.install-btn:disabled { opacity: 0.55; cursor: default; }
+.install-steps { text-align: left; background: var(--bg); border-radius: 12px; padding: 14px 16px; margin: 4px 0 18px; }
+.install-steps li { font-size: 13px; color: var(--ink); margin-bottom: 8px; line-height: 1.45; }
+.install-steps li:last-child { margin-bottom: 0; }
 
 /* ---------- Dashboard ---------- */
 #dashboard { display: none; }
@@ -469,6 +480,17 @@ to { opacity: 1; transform: translateY(0); }
 <p class="tagline"><strong style="color:#fff; font-weight:700;">All agencies, one app.</strong><br>Live availability from local letting agents, in one place.</p>
 <div class="city-list" id="cityList"></div>
 <button class="enter-btn" onclick="enterDashboard()">View Listings →</button>
+<button class="install-btn" onclick="handleInstallClick()" id="installBtn">Add to Home Screen</button>
+</div>
+</div>
+
+<div class="auth-overlay" id="installOverlay" onclick="if(event.target===this) closeInstallOverlay()">
+<div class="auth-card" style="text-align:center;">
+<div class="paywall-icon">R</div>
+<div class="auth-title" id="installTitle">Add Roomrun to your Home Screen</div>
+<div class="auth-sub" id="installSub">Once it's added, it opens straight from your home screen like a normal app — no browser bar, and notifications work properly too.</div>
+<ol class="install-steps" id="installSteps"></ol>
+<button class="auth-submit-btn" onclick="closeInstallOverlay()">Got it</button>
 </div>
 </div>
 
@@ -697,6 +719,20 @@ navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW registr
 });
 }
 
+// Shared device/browser detection used by both the "Add to Home Screen" button and the push
+// notification messaging below — they run into the exact same handful of real-world cases
+// (Instagram/TikTok's in-app browser, iPhone Safari, already-installed), so this is worked out
+// once instead of twice.
+function deviceContext() {
+const ua = navigator.userAgent || '';
+return {
+isInApp: /Instagram|FBAN|FBAV|TikTok|Line\//i.test(ua),
+isIOS: /iPad|iPhone|iPod/.test(ua) && !window.MSStream,
+isAndroid: /Android/.test(ua),
+isStandalone: window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches
+};
+}
+
 const VAPID_PUBLIC_KEY = 'BMfqq5Ke227chFM8zPy-OnpW79XE8Pfl3RcB5R5H-OASoxK00pEB5zEO9PPaA-G2GaLcDypZgvVbFxEQCcmc0mc';
 
 function urlBase64ToUint8Array(base64String) {
@@ -712,17 +748,83 @@ return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 // inside Instagram/TikTok/Facebook's built-in browser, which blocks push entirely, and
 // (2) iPhone Safari, which only allows push for sites added to the Home Screen first.
 function pushUnsupportedReason() {
-const ua = navigator.userAgent || '';
-const isInApp = /Instagram|FBAN|FBAV|TikTok|Line\//i.test(ua);
-const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-if (isInApp) {
+const ctx = deviceContext();
+if (ctx.isInApp) {
 return 'This link is open inside Instagram/TikTok\'s built-in browser, which blocks notifications. Tap ⋯ or the browser icon and choose "Open in Safari/Chrome", then try again from there.';
 }
-if (isIOS && !isStandalone) {
+if (ctx.isIOS && !ctx.isStandalone) {
 return 'On iPhone, notifications only work once Roomrun is added to your Home Screen. Tap the Share icon, then "Add to Home Screen", open it from there, and try again.';
 }
 return 'Push isn\'t supported in this browser — try Safari or Chrome instead.';
+}
+
+// --- "Add to Home Screen" ---
+// Chrome/Edge/Android fire beforeinstallprompt and let JS trigger the native install dialog
+// directly. iOS Safari and every in-app browser (Instagram, TikTok) have no such API at all —
+// the only thing possible there is showing the person exactly which manual steps to tap.
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+e.preventDefault();
+deferredInstallPrompt = e;
+});
+
+function markInstallBtnState() {
+const btn = document.getElementById('installBtn');
+if (!btn) return;
+if (deviceContext().isStandalone) {
+btn.textContent = 'Added to Home Screen ✓';
+btn.disabled = true;
+}
+}
+window.addEventListener('load', markInstallBtnState);
+window.addEventListener('appinstalled', markInstallBtnState);
+
+function openInstallOverlay(title, sub, steps) {
+document.getElementById('installTitle').textContent = title;
+document.getElementById('installSub').textContent = sub;
+document.getElementById('installSteps').innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+document.getElementById('installOverlay').classList.add('open');
+}
+function closeInstallOverlay() {
+document.getElementById('installOverlay').classList.remove('open');
+}
+
+async function handleInstallClick() {
+const ctx = deviceContext();
+if (ctx.isStandalone) return;
+
+if (ctx.isInApp) {
+openInstallOverlay(
+'Open this in your real browser first',
+'Instagram/TikTok\'s built-in browser can\'t install apps to your Home Screen — only Safari or Chrome can.',
+['Tap the ⋯ or ✈ icon in the top corner', 'Choose "Open in Safari" (or "Open in Browser")', 'Tap "Add to Home Screen" again once it opens there']
+);
+return;
+}
+
+if (deferredInstallPrompt) {
+deferredInstallPrompt.prompt();
+const { outcome } = await deferredInstallPrompt.userChoice;
+deferredInstallPrompt = null;
+if (outcome === 'accepted') markInstallBtnState();
+return;
+}
+
+if (ctx.isIOS) {
+openInstallOverlay(
+'Add Roomrun to your Home Screen',
+'iPhone doesn\'t let apps trigger this automatically — a couple of taps in Safari does it.',
+['Tap the Share icon at the bottom of the screen (the square with an arrow)', 'Scroll down and tap "Add to Home Screen"', 'Tap "Add" in the top corner — Roomrun now opens like a normal app']
+);
+return;
+}
+
+// Desktop / a browser that doesn't support beforeinstallprompt (e.g. Firefox)
+openInstallOverlay(
+'Add Roomrun to your Home Screen',
+'Your browser menu has this option even though it can\'t be triggered automatically here.',
+['Open your browser\'s menu (usually ⋮ or ☰)', 'Look for "Install app" or "Add to Home Screen"', 'Confirm — Roomrun now opens like a normal app']
+);
 }
 
 async function enableNotifications() {
