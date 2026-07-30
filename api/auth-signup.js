@@ -20,6 +20,11 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // This existing-account check is also what stops the trial from ever being restarted —
+    // trialStart below only ever gets written here, on a genuinely brand-new record. Someone
+    // trying to "start over" by signing up again with the same email just gets sent to log in
+    // instead, so their original trialStart (and however many days of it are left, including
+    // zero) stays exactly what it was.
     const existing = await getUser(normEmail);
     if (existing) {
       res.status(409).json({ error: 'An account with that email already exists — try logging in instead.' });
