@@ -306,9 +306,9 @@ box-shadow: 0 2px 8px rgba(11,23,48,0.08);
 .filter-btn.fav-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .card:hover { box-shadow: 0 14px 32px -10px rgba(11,23,48,0.16); transform: translateY(-2px); border-color: rgba(76,126,255,0.3); }
 .card > .card-main { flex: 1; min-width: 0; padding-right: 26px; }
-.card-top-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.card-top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .card-addr { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15.5px; letter-spacing: -0.1px; color: var(--navy-900); line-height: 1.3; }
-.card-meta { font-size: 12px; color: var(--muted); font-weight: 600; }
+.card-meta { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 4px; }
 .card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
 .src {
 font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
@@ -392,7 +392,7 @@ padding: 11px 22px; font-size: 12.5px; font-weight: 700; cursor: pointer; letter
 font-family: 'Space Grotesk', sans-serif; box-shadow: 0 8px 20px -8px rgba(11,23,48,0.45);
 }
 .save-btn:hover { filter: brightness(1.08); }
-.save-note { font-size: 11.5px; color: #1A7A3D; margin-left: 10px; font-weight: 700; }
+.save-note { display: block; font-size: 12px; color: #1A7A3D; margin-top: 8px; font-weight: 600; max-width: 420px; line-height: 1.4; }
 .panel-block {
 background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 24px;
 margin-bottom: 18px; position: relative; overflow: hidden;
@@ -706,11 +706,30 @@ const rawData = atob(base64);
 return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+// Web Push genuinely isn't available in a lot of situations that have nothing to do with
+// this app — this tries to name the actual reason instead of a flat "not supported", since
+// the two by far most common causes for a student on their phone are: (1) opening the link
+// inside Instagram/TikTok/Facebook's built-in browser, which blocks push entirely, and
+// (2) iPhone Safari, which only allows push for sites added to the Home Screen first.
+function pushUnsupportedReason() {
+const ua = navigator.userAgent || '';
+const isInApp = /Instagram|FBAN|FBAV|TikTok|Line\//i.test(ua);
+const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+if (isInApp) {
+return 'This link is open inside Instagram/TikTok\'s built-in browser, which blocks notifications. Tap ⋯ or the browser icon and choose "Open in Safari/Chrome", then try again from there.';
+}
+if (isIOS && !isStandalone) {
+return 'On iPhone, notifications only work once Roomrun is added to your Home Screen. Tap the Share icon, then "Add to Home Screen", open it from there, and try again.';
+}
+return 'Push isn\'t supported in this browser — try Safari or Chrome instead.';
+}
+
 async function enableNotifications() {
 const btn = document.getElementById('notifyBtn');
 const note = document.getElementById('notifyNote');
 if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-note.textContent = 'Push isn\'t supported in this browser.';
+note.textContent = pushUnsupportedReason();
 note.style.display = 'inline';
 return;
 }
@@ -1587,18 +1606,20 @@ const fav = isFavorited(item);
 // Real listing photos aren't pulled in for any source yet (item.image is always unset), which
 // meant every single card showed the same generic house-outline placeholder icon — visual
 // clutter that added nothing since it never varied. Cards now skip the thumbnail entirely when
-// there's no real photo (i.e. always, for now) and lean on typography/spacing instead — address
-// in the brand's Space Grotesk headline font, source badge + beds/baths grouped above it, and a
-// bolder price + View button. thumbInner()/.card-thumb stay wired up for the day a source
-// actually supplies real photos.
+// there's no real photo (i.e. always, for now) and lean on typography/spacing instead — source
+// badge on top, address in the brand's Space Grotesk headline font below it, then beds/baths
+// (same Space Grotesk family, just smaller/muted) at the bottom, and a bolder price + View
+// button on the side. thumbInner()/.card-thumb stay wired up for the day a source actually
+// supplies real photos.
 card.innerHTML = `
 <button class="flag-btn${fav ? ' flagged' : ''}" aria-label="${fav ? 'Remove from saved' : 'Save this listing'}" title="${fav ? 'Remove from saved' : 'Save this listing'}">
 <svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
 </button>
 ${item.image ? `<div class="card-thumb">${thumbInner(item)}</div>` : ''}
 <div class="card-main">
+<div class="card-top-row"><span class="src ${item.tag}">${item.source}</span></div>
 <div class="card-addr">${item.address}</div>
-<div class="card-top-row"><span class="src ${item.tag}">${item.source}</span>${meta ? `<span class="card-meta">${meta}</span>` : ''}</div>
+${meta ? `<div class="card-meta">${meta}</div>` : ''}
 </div>
 <div class="card-side">
 <div class="price">${item.price || ''}</div>
