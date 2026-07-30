@@ -192,6 +192,21 @@ border: 3px solid var(--accent); box-shadow: 0 2px 6px rgba(11,23,48,0.25); curs
 .price-slider input#priceMaxRange { z-index: 4; }
 .filter-btn.dedupe-active { background: var(--navy-900); color: #fff; border-color: var(--navy-900); }
 
+/* ---------- Distance filter ---------- */
+.distance-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.distance-custom { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.distance-custom .field-input { flex: 1 1 220px; width: auto; margin: 0; }
+.distance-status {
+font-size: 11.5px; color: var(--muted); margin-top: 8px; min-height: 14px;
+display: flex; align-items: center; gap: 6px;
+}
+.distance-status.err { color: #C0392B; }
+.distance-spinner {
+width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--line);
+border-top-color: var(--accent); animation: distSpin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes distSpin { to { transform: rotate(360deg); } }
+
 /* ---------- Thumbnails + lightbox ---------- */
 .card-thumb {
 width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0; cursor: pointer;
@@ -511,6 +526,7 @@ to { opacity: 1; transform: translateY(0); }
 <option value="beds-desc">Beds: Most first</option>
 <option value="location">Location A–Z</option>
 <option value="source">Source A–Z</option>
+<option value="distance">Nearest first</option>
 </select>
 <select class="sort-select" id="bedsSelect" onchange="onBedsChange()">
 <option value="All">Beds: Any</option>
@@ -536,6 +552,33 @@ to { opacity: 1; transform: translateY(0); }
 <input type="range" id="priceMaxRange" min="0" max="3000" step="50" value="3000" oninput="onPriceRangeChange()">
 </div>
 </div>
+</div>
+<div class="controls-label">Distance from</div>
+<div class="controls-row">
+<div class="distance-row">
+<select class="sort-select" id="distanceCenterSelect" onchange="onDistanceCenterChange()">
+<option value="">Any location</option>
+<option value="preset:town">Town Centre (Market Street)</option>
+<option value="preset:uni">University (St Salvator's)</option>
+<option value="preset:cathedral">St Andrews Cathedral</option>
+<option value="preset:westsands">West Sands</option>
+<option value="preset:bus">Bus Station</option>
+<option value="custom">Custom address…</option>
+</select>
+<select class="sort-select" id="distanceRadiusSelect" onchange="onDistanceRadiusChange()">
+<option value="0.5">Within 0.5 km</option>
+<option value="1" selected>Within 1 km</option>
+<option value="1.5">Within 1.5 km</option>
+<option value="2">Within 2 km</option>
+<option value="3">Within 3 km</option>
+<option value="999">Any distance from there</option>
+</select>
+</div>
+<div class="distance-custom" id="distanceCustomRow" style="display:none;">
+<input class="field-input" id="distanceCustomAddr" placeholder="e.g. a street or building in St Andrews">
+<button class="filter-btn" onclick="setCustomDistanceCenter()">Set</button>
+</div>
+<div class="distance-status" id="distanceStatus"></div>
 </div>
 </div>
 
@@ -1347,6 +1390,125 @@ let activePriceMin = 0;
 let hideDuplicates = false;
 const PRICE_SLIDER_MAX = 3000;
 
+// ---------- Distance filter ----------
+// Well-known single points, resolved through the same real geocoding pipeline as everything
+// else (api/geocode.js -> Nominatim) rather than hardcoded coordinates, so they're as accurate
+// as any other address here.
+const DISTANCE_PRESETS = {
+town: { label: 'Town Centre (Market Street)', query: 'Market Street, St Andrews, Fife, UK' },
+uni: { label: "University (St Salvator's)", query: "St Salvator's Quad, North Street, St Andrews, Fife, UK" },
+cathedral: { label: 'St Andrews Cathedral', query: 'St Andrews Cathedral, Fife, UK' },
+westsands: { label: 'West Sands', query: 'West Sands, St Andrews, Fife, UK' },
+bus: { label: 'Bus Station', query: 'St Andrews Bus Station, Fife, UK' }
+};
+let activeDistanceCenter = null; // { lat, lng, label } or null = filter off
+let activeDistanceRadiusKm = 1;
+
+const GEO_CACHE_KEY = 'rw_geoCache';
+function loadGeoCache() {
+try { return JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveGeoCache() {
+try { localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(geoCache)); } catch (e) {}
+}
+let geoCache = loadGeoCache(); // normalized address -> {lat,lng} | null
+
+function normAddr(a) { return String(a || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+const R = 6371;
+const dLat = (lat2 - lat1) * Math.PI / 180;
+const dLng = (lng2 - lng1) * Math.PI / 180;
+const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function updateDistanceStatus(text, isErr) {
+const el = document.getElementById('distanceStatus');
+if (!el) return;
+el.classList.toggle('err', !!isErr);
+el.innerHTML = text ? (isErr ? text : `<span class="distance-spinner"></span>${text}`) : '';
+}
+
+// Resolves a batch of addresses via /api/geocode, caching results (including "not found") in
+// localStorage so this is a one-time cost per browser, not per visit. The endpoint itself only
+// resolves a handful of genuinely new addresses per call (see its own comments for why), so this
+// loops, asking again for whatever's still missing, until everything's resolved or a lookup gets
+// permanently cached as unresolvable.
+async function geocodeBatch(addresses) {
+const unique = [...new Set(addresses)].filter((a) => !(normAddr(a) in geoCache));
+if (!unique.length) return;
+try {
+const res = await fetch('/api/geocode', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ addresses: unique })
+});
+const data = await res.json();
+Object.keys(data.results || {}).forEach((addr) => { geoCache[normAddr(addr)] = data.results[addr]; });
+saveGeoCache();
+} catch (e) {
+// Network hiccup — leave these unresolved, a later call will retry them since nothing got cached.
+}
+}
+
+let geocodingBusy = false;
+async function ensureListingLocations() {
+if (geocodingBusy) return;
+geocodingBusy = true;
+try {
+for (let attempt = 0; attempt < 25; attempt++) {
+const missing = allListings.map((l) => l.address).filter((a) => !(normAddr(a) in geoCache));
+if (!missing.length) break;
+const resolvedSoFar = allListings.length - missing.length;
+updateDistanceStatus(`Locating listings… ${resolvedSoFar}/${allListings.length}`);
+await geocodeBatch(missing);
+if (activeDistanceCenter || activeSort === 'distance') { renderList(); }
+}
+} finally {
+geocodingBusy = false;
+updateDistanceStatus('');
+}
+}
+
+async function resolveDistanceCenter(query, label) {
+updateDistanceStatus(`Finding ${label}…`);
+await geocodeBatch([query]);
+const coords = geoCache[normAddr(query)];
+if (!coords) {
+updateDistanceStatus(`Couldn't find "${label}" — try a different spot.`, true);
+return null;
+}
+updateDistanceStatus('');
+return { lat: coords.lat, lng: coords.lng, label };
+}
+
+async function onDistanceCenterChange() {
+const val = document.getElementById('distanceCenterSelect').value;
+const customRow = document.getElementById('distanceCustomRow');
+customRow.style.display = val === 'custom' ? 'flex' : 'none';
+if (val === 'custom') { activeDistanceCenter = null; renderList(); return; }
+if (!val) { activeDistanceCenter = null; updateDistanceStatus(''); renderList(); return; }
+const presetKey = val.replace('preset:', '');
+const preset = DISTANCE_PRESETS[presetKey];
+if (!preset) return;
+activeDistanceCenter = await resolveDistanceCenter(preset.query, preset.label);
+renderList();
+}
+
+async function setCustomDistanceCenter() {
+const input = document.getElementById('distanceCustomAddr');
+const addr = input.value.trim();
+if (!addr) return;
+activeDistanceCenter = await resolveDistanceCenter(`${addr}, St Andrews, Fife, UK`, addr);
+renderList();
+}
+
+function onDistanceRadiusChange() {
+activeDistanceRadiusKm = parseFloat(document.getElementById('distanceRadiusSelect').value);
+renderList();
+}
+
 function renderFilters() {
 const sources = [...new Set(allListings.map(l => l.source))];
 const el = document.getElementById('filters');
@@ -1496,6 +1658,24 @@ items.sort((a, b) => (b.beds ?? -Infinity) - (a.beds ?? -Infinity));
 items.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
 } else if (activeSort === 'source') {
 items.sort((a, b) => a.source.localeCompare(b.source));
+} else if (activeSort === 'distance' && activeDistanceCenter) {
+items.sort((a, b) => {
+const ca = geoCache[normAddr(a.address)], cb = geoCache[normAddr(b.address)];
+const da = ca ? haversineKm(activeDistanceCenter.lat, activeDistanceCenter.lng, ca.lat, ca.lng) : Infinity;
+const db = cb ? haversineKm(activeDistanceCenter.lat, activeDistanceCenter.lng, cb.lat, cb.lng) : Infinity;
+return da - db;
+});
+}
+// Listings whose address hasn't resolved to coordinates yet (or never will — some scraped
+// addresses are too vague, e.g. just "Fife") are excluded while the radius filter is active
+// rather than shown with no way to know if they qualify. They reappear automatically as
+// ensureListingLocations() resolves more addresses in the background and re-renders.
+if (activeDistanceCenter && activeDistanceRadiusKm < 999) {
+items = items.filter((l) => {
+const c = geoCache[normAddr(l.address)];
+if (!c) return false;
+return haversineKm(activeDistanceCenter.lat, activeDistanceCenter.lng, c.lat, c.lng) <= activeDistanceRadiusKm;
+});
 }
 if (hideDuplicates) items = dedupeByAddress(items);
 if (showFavoritesOnly) items = items.filter((l) => isFavorited(l));
@@ -1679,6 +1859,9 @@ renderFilters();
 renderList();
 renderSourcesStrip();
 updatePriceSliderUI(parseInt(document.getElementById('priceMinRange').value, 10), parseInt(document.getElementById('priceMaxRange').value, 10));
+// Fire-and-forget: resolves addresses -> coordinates in the background for the distance
+// filter, without delaying the listings themselves from showing up.
+ensureListingLocations();
 } catch (e) {
 allListings = [...cfg.staticListings];
 document.getElementById('bigNum').textContent = allListings.length;
