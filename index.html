@@ -675,7 +675,6 @@ to { opacity: 1; transform: translateY(0); }
 <div class="panel-block">
 <div class="panel-eyebrow">Step 2</div>
 <div class="panel-title">Save your details once</div>
-<p class="panel-intro">Kept only on this device. Used to skip the typing when you jump to a site's own signup below — nothing is sent anywhere automatically.</p>
 <div class="field-group">
 <label class="field-label">Full name</label>
 <input class="field-input" id="alertName" placeholder="e.g. Boris Metaliaj">
@@ -691,7 +690,6 @@ to { opacity: 1; transform: translateY(0); }
 <div class="panel-block">
 <div class="panel-eyebrow">Step 3</div>
 <div class="panel-title">Sign up for each site's real alerts</div>
-<p class="panel-intro">One click through to each site's own alert signup — no digging through menus to find it.</p>
 <div id="siteCards"></div>
 </div>
 </div>
@@ -1132,43 +1130,43 @@ const ALERT_SITES = [
 {
 name: 'Lawson & Thompson',
 kind: 'form', badge: 'Real form',
-note: 'Genuine email-alert signup — name, email, graduation year. ~20 seconds.',
+note: 'Name, email, graduation year — ~20 seconds.',
 url: 'https://www.lawsonthompson.co.uk/email-alerts/'
 },
 {
 name: 'Rightmove',
 kind: 'account', badge: 'Needs account',
-note: 'Search loads pre-filtered to St Andrews. Click "Create Alert" near the top — needs a free My Rightmove account.',
+note: 'Click "Create Alert" near the top.',
 url: 'https://www.rightmove.co.uk/property-to-rent/St-Andrews.html'
 },
 {
 name: 'OnTheMarket',
 kind: 'account', badge: 'Needs account',
-note: 'Search loads pre-filtered to St Andrews. Look for "Get instant alerts" — needs a free account.',
+note: 'Look for "Get instant alerts".',
 url: 'https://www.onthemarket.com/to-rent/property/st-andrews/'
 },
 {
 name: 'Zoopla',
 kind: 'account', badge: 'Needs account',
-note: 'Type "St Andrews" in the search box, then click "Create alert" — needs a free account.',
+note: 'Search "St Andrews", then "Create alert".',
 url: 'https://www.zoopla.co.uk/to-rent/'
 },
 {
 name: 'Studentpad (University portal)',
 kind: 'account', badge: 'Needs uni login',
-note: 'Official University of St Andrews portal — log in with your university account, then save a search.',
+note: 'Log in with your university account.',
 url: 'https://www.standrewsstudentpad.co.uk/Accommodation'
 },
 {
 name: 'SpareRoom',
 kind: 'form', badge: 'Free, no login for alerts',
-note: 'Search loads pre-filtered to St Andrews rooms. Click "Save this search for alerts" — just an email, no account needed to receive them.',
+note: 'Click "Save this search for alerts".',
 url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews?share_type=S'
 },
 {
 name: 'St Andrews Property Lets / Bradburne & Co / 55Rent / HMJ Properties / Stand Property / St Andy\'s',
 kind: 'none', badge: 'No alert system',
-note: 'These smaller agents don\'t have an email-alert signup at all — that\'s the actual gap this dashboard fills for them. HMJ specifically wants enquiries by email (hmj@hmjproperties.co.uk) with the property name in the subject line.',
+note: 'HMJ: email hmj@hmjproperties.co.uk with the property name.',
 url: 'https://www.bradburne.co.uk/lettings/fife/st-andrews/'
 }
 ];
@@ -1231,6 +1229,7 @@ minPrice: minPrice === '' ? null : Number(minPrice),
 maxPrice: maxPrice === '' ? null : Number(maxPrice)
 }));
 }
+
 
 function renderNotifyFilters() {
 const bedsEl = document.getElementById('notifyBedsRow');
