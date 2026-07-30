@@ -37,7 +37,15 @@ async function nominatimLookup(address) {
       'Accept-Language': 'en-GB'
     }
   });
-  if (!res.ok) throw new Error('Nominatim HTTP ' + res.status);
+  if (!res.ok) {
+    // Nominatim is a free, shared service. It sometimes blanket-blocks entire cloud-hosting
+    // IP ranges (Vercel's functions run on shared AWS infrastructure) with a 403, regardless
+    // of how well-behaved this specific app is being. Logging the body helps tell that case
+    // apart from a genuine "no results" or a malformed request.
+    let bodySnippet = '';
+    try { bodySnippet = (await res.text()).slice(0, 300); } catch (e2) { /* ignore */ }
+    throw new Error(`Nominatim HTTP ${res.status} for "${query}" — ${bodySnippet}`);
+  }
   const data = await res.json();
   if (!Array.isArray(data) || !data[0]) return null;
   const lat = parseFloat(data[0].lat);
@@ -85,6 +93,10 @@ module.exports = async (req, res) => {
       try {
         coords = await nominatimLookup(addr);
       } catch (e) {
+        // Previously this failure was swallowed silently, so a real network/API error looked
+        // identical to a genuine "address not found" on the client. Logging it here means the
+        // actual cause shows up in Vercel's Runtime Logs for this request instead of vanishing.
+        console.error('geocode: lookup failed for', JSON.stringify(addr), '-', e.message || e);
         coords = null;
       }
       results[addr] = coords;
