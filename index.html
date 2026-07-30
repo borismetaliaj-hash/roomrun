@@ -753,7 +753,7 @@ if (ctx.isInApp) {
 return 'This link is open inside Instagram/TikTok\'s built-in browser, which blocks notifications. Tap ⋯ or the browser icon and choose "Open in Safari/Chrome", then try again from there.';
 }
 if (ctx.isIOS && !ctx.isStandalone) {
-return 'On iPhone, notifications only work once Roomrun is added to your Home Screen. Tap the Share icon, then "Add to Home Screen", open it from there, and try again.';
+return 'On iPhone, notifications only work once Roomrun is added to your Home Screen. Use the "Add to Home Screen" button below, open Roomrun from there, and try again.';
 }
 return 'Push isn\'t supported in this browser — try Safari or Chrome instead.';
 }
@@ -811,10 +811,13 @@ return;
 }
 
 if (ctx.isIOS) {
+// Confirmed against an actual recording of this flow: on current iOS, "Add to Home
+// Screen" isn't one of the icons the share sheet opens with — it's hidden behind
+// "View More", which is easy to miss the first time.
 openInstallOverlay(
 'Add Roomrun to your Home Screen',
-'iPhone doesn\'t let apps trigger this automatically — a couple of taps in Safari does it.',
-['Tap the Share icon at the bottom of the screen (the square with an arrow)', 'Scroll down and tap "Add to Home Screen"', 'Tap "Add" in the top corner — Roomrun now opens like a normal app']
+'iPhone doesn\'t let apps trigger this automatically — a few taps in Safari does it.',
+['Tap the Share icon next to the address bar (the square with an arrow)', 'In the row of icons, tap "View More" (it\'s the last one, second from AirDrop)', 'Scroll down and tap "Add to Home Screen"', 'Tap "Add" in the top right — Roomrun now opens like a normal app']
 );
 return;
 }
