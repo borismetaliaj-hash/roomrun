@@ -2,6 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- SEO/link-preview tags — none of these existed before (found during a 2026-07-31 audit).
+Without a meta description, Google shows a generic snippet or none at all, and without
+og:title/og:description/og:image, sharing the link in an Instagram bio, iMessage, WhatsApp or
+a group chat shows a bare grey link with no preview card — which matters a lot for a launch
+that leans on link-in-bio traffic. Using icon-512.png as the share image since it's the only
+public image asset already on the site (a proper 1200x630 banner would render better, but
+this works today with zero extra deploy steps). -->
+<meta name="description" content="Live rental listings from every St Andrews letting agency, in one place. Free for 7 days, then £1.99/month.">
+<meta property="og:title" content="Roomrun — Student housing, solved">
+<meta property="og:description" content="Live rental availability from local letting agents in St Andrews, all in one app. Free for 7 days.">
+<meta property="og:image" content="https://roomrun.vercel.app/icon-512.png">
+<meta property="og:url" content="https://roomrun.vercel.app/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Roomrun — Student housing, solved">
+<meta name="twitter:description" content="Live rental availability from local letting agents in St Andrews, all in one app.">
+<meta name="twitter:image" content="https://roomrun.vercel.app/icon-512.png">
+<link rel="canonical" href="https://roomrun.vercel.app/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Roomrun</title>
 <link rel="manifest" href="/manifest.json">
@@ -599,7 +617,7 @@ to { opacity: 1; transform: translateY(0); }
 <input class="field-input" type="password" id="authPassword" placeholder="At least 8 characters" autocomplete="current-password">
 </div>
 <button class="auth-submit-btn" id="authSubmitBtn" onclick="submitAuth()">Start free trial</button>
-<div class="auth-note">By continuing you agree this is a free trial for 7 days, then £1.99/month to keep access. Cancel any time before it ends and you won't be charged.</div>
+<div class="auth-note">By continuing you agree this is a free trial for 7 days, then £1.99/month to keep access. Cancel any time before it ends and you won't be charged. Read our <a href="/privacy.html" target="_blank" style="color:inherit; text-decoration:underline;">privacy policy</a>.</div>
 </div>
 </div>
 
