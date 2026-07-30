@@ -560,14 +560,54 @@ function parsePeterMoore(text) {
 // Rightmove/OnTheMarket/SpareRoom's own terms explicitly prohibit automated access —
 // Rightmove's terms state outright "Rightmove prohibits the scraping of its content," and
 // OnTheMarket's terms (clause 3.3) ban any automated program beyond their homepage. So
-// these three stay 100% manually-curated static snapshots (hand-typed, refreshed by
-// occasionally re-checking by hand) in index.html, never touched by an automated request
-// from this server — see STATIC_LISTINGS_STA there. A same-day attempt to auto-verify
-// these via live HTTP requests was reverted for exactly this reason: even a lightweight
-// existence-check is still "automated access" under their terms. Alba St Andrews' listings
-// also stay in that same static snapshot (their own site, albastandrews.co.uk, has no
-// scraping restriction in its terms and could be live-scraped safely if ever wanted, but it
-// isn't wired up here — no reason to add a new live source Boris hasn't asked for).
+// these three stay 100% manually-curated static snapshots (hand-typed, refreshed on a
+// recurring schedule by re-checking by hand — see the "refresh every 2 days" scheduled task)
+// in index.html, never touched by an automated request from this server — see
+// STATIC_LISTINGS_STA there. A same-day attempt to auto-verify these via live HTTP requests
+// was reverted for exactly this reason: even a lightweight existence-check is still
+// "automated access" under their terms.
+
+// --- Alba (St Andrews): their own site, albastandrews.co.uk, has no scraping restriction in
+// its terms (unlike the three portals above), so this is a real live source rather than a
+// static snapshot — added 2026-07-30. Only page 1 of /properties/ is fetched (their newest
+// listings), which is plenty for one boutique local agency's live availability and avoids
+// scraping deep, mostly-stale pagination. Each card anchors on its "£d,ddd"-style price line,
+// then scans backward for the 2-3 numeric lines just above it (beds, baths, and sometimes a
+// third "public rooms" count that's ignored) and then the nearest property-page link for the
+// address text and URL — the very first link on each card is a thumbnail-image anchor with no
+// real link text (html-to-text renders its href as if it were the text, same issue documented
+// in parseStandProperty above), so this specifically skips any "address" that's just a bare
+// URL and keeps walking backward until it finds real text. Best-effort — flag to Boris if
+// entries look off, since this wasn't testable against a live Vercel deploy before shipping.
+function parseAlba(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const results = [];
+  for (let i = 0; i < lines.length; i++) {
+    const priceM = lines[i].match(/£\s?([\d,]{3,})/);
+    if (!priceM) continue;
+
+    let j = i - 1;
+    const nums = [];
+    while (j >= 0 && /^\d+$/.test(lines[j]) && nums.length < 3) {
+      nums.unshift(parseInt(lines[j], 10));
+      j--;
+    }
+    if (!nums.length) continue;
+    const beds = nums[0];
+    const baths = nums.length > 1 ? nums[1] : null;
+
+    let address = null, url = null;
+    for (let k = j; k >= 0 && k >= j - 6; k--) {
+      const urlM = lines[k].match(/(https?:\/\/(?:www\.)?albastandrews\.co\.uk\/property\/[^\s)]+)/i);
+      if (!urlM) continue;
+      const t = lines[k].replace(urlM[1], '').trim();
+      if (t.length > 4 && t.length < 90 && !/^https?:\/\//i.test(t)) { address = t; url = urlM[1]; break; }
+    }
+    if (!address || !url) continue;
+    results.push({ address, beds, baths, price: '£' + priceM[1] + ' pcm', url });
+  }
+  return results;
+}
 
 // Per-city live sources. Zoopla and Morgan Douglas (Durham, explicit "no data mining"
 // clause) are deliberately excluded entirely (no static snapshot either).
@@ -628,6 +668,11 @@ const CITY_SOURCES = {
           beds: i.beds, baths: i.baths, price: '', priceValue: null, url: i.url, contactEmail: 'info@standys.co.uk'
         }));
       }
+    },
+    {
+      name: 'Alba', url: 'https://www.albastandrews.co.uk/properties/',
+      run: async () => parseAlba(await fetchText('https://www.albastandrews.co.uk/properties/'))
+        .map(i => ({ source: 'Alba', tag: 'src-alba', address: i.address, beds: i.beds, baths: i.baths, price: i.price, priceValue: parsePrice(i.price), url: i.url, contactEmail: 'info@albastandrews.co.uk' }))
     }
   ],
   'Durham': [
