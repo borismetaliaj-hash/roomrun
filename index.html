@@ -214,9 +214,18 @@ box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4); animation: viewFadeIn .25s ease;
 }
 .lightbox-hero {
 height: 160px; background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
-display: flex; align-items: center; justify-content: center; position: relative;
+display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
 }
-.lightbox-hero svg { width: 54px; height: 54px; color: rgba(255,255,255,0.85); }
+.lightbox-hero::before {
+content: ''; position: absolute; top: -50px; right: -40px; width: 180px; height: 180px;
+background: radial-gradient(circle, rgba(76,126,255,0.4), transparent 70%); pointer-events: none;
+}
+.lightbox-mark {
+width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+display: flex; align-items: center; justify-content: center; color: #fff; position: relative;
+font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px;
+box-shadow: 0 14px 28px -8px rgba(76,126,255,0.55);
+}
 .lightbox-close {
 position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 50%;
 background: rgba(255,255,255,0.18); color: #fff; border: none; cursor: pointer;
@@ -277,30 +286,33 @@ font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px;
 }
 .paywall-price { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--navy-900); margin: 14px 0 4px; }
 .paywall-price span { font-size: 14px; font-weight: 600; color: var(--muted); }
-.card-list { display: flex; flex-direction: column; gap: 9px; }
+.card-list { display: flex; flex-direction: column; gap: 10px; }
 .card {
-background: #fff; border: 1px solid var(--line); border-radius: 14px;
-padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
-transition: box-shadow .15s, transform .15s;
-position: relative;
+background: #fff; border: 1px solid var(--line); border-radius: 16px;
+padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+transition: box-shadow .18s, transform .18s, border-color .18s;
+position: relative; cursor: pointer;
 }
 .flag-btn {
-position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); border: none;
-width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.92); border: none;
+width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center;
 justify-content: center; color: var(--muted); padding: 0; transition: color .12s, transform .1s;
+box-shadow: 0 2px 8px rgba(11,23,48,0.08);
 }
 .flag-btn:hover { transform: scale(1.08); }
 .flag-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 .flag-btn.flagged { color: var(--accent); }
 .flag-btn.flagged svg { fill: var(--accent); }
 .filter-btn.fav-active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.card:hover { box-shadow: 0 6px 20px rgba(11,23,48,0.08); transform: translateY(-1px); }
-.card-main { flex: 1; min-width: 0; }
-.card-addr { font-weight: 600; font-size: 14.5px; }
-.card-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; margin-left: 1px; }
+.card:hover { box-shadow: 0 14px 32px -10px rgba(11,23,48,0.16); transform: translateY(-2px); border-color: rgba(76,126,255,0.3); }
+.card > .card-main { flex: 1; min-width: 0; padding-right: 26px; }
+.card-top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; flex-wrap: wrap; }
+.card-addr { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15.5px; letter-spacing: -0.1px; color: var(--navy-900); line-height: 1.3; }
+.card-meta { font-size: 12px; color: var(--muted); font-weight: 600; }
+.card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
 .src {
 font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
-padding: 3px 8px; border-radius: 6px; margin-right: 8px;
+padding: 3px 8px; border-radius: 6px;
 }
 .src-sapl { background: #F1E6FF; color: #6A1AB0; }
 .src-brad { background: #E6F7EC; color: #1A7A3D; }
@@ -319,12 +331,14 @@ padding: 3px 8px; border-radius: 6px; margin-right: 8px;
 .src-standp { background: #EAF0FF; color: #2445A8; }
 .src-standys { background: #FFF6E0; color: #A66A00; }
 .card-contact { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
-.price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: var(--navy-900); white-space: nowrap; }
+.price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16.5px; color: var(--navy-900); white-space: nowrap; }
 .view-link {
 font-size: 12px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
-padding: 8px 16px; border-radius: 9px; text-decoration: none; white-space: nowrap;
-font-family: 'Space Grotesk', sans-serif;
+padding: 9px 17px; border-radius: 9px; text-decoration: none; white-space: nowrap;
+font-family: 'Space Grotesk', sans-serif; transition: transform .12s, box-shadow .12s;
+box-shadow: 0 6px 16px -6px rgba(11,23,48,0.35);
 }
+.view-link:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(11,23,48,0.45); }
 .card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .viewing-link {
 font-size: 11px; font-weight: 700; color: var(--accent); text-decoration: none; white-space: nowrap;
@@ -432,18 +446,16 @@ to { opacity: 1; transform: translateY(0); }
   .controls-row > div { width: 100%; }
   .sort-select { flex: 1 1 auto; min-width: 0; }
 
-  /* Cards: stack instead of forcing thumb + address + price + two nowrap buttons into one
-     row — that's what was causing text to overlap on phone-width screens. The thumbnail is
-     just a placeholder house icon until real listing photos exist, so it adds clutter without
-     adding information on a small screen — hide it here rather than squeeze it in. */
+  /* Cards: stack instead of forcing address + price + two nowrap buttons into one row —
+     that's what was causing text to overlap on phone-width screens. There's no thumbnail to
+     worry about any more (cards only show one when a source actually has a real photo), so
+     this just drops card-main and card-side each onto their own full-width row. */
   .card { flex-wrap: wrap; row-gap: 10px; padding: 14px; }
   .card-thumb { display: none; }
-  .card-main { flex-basis: 100%; min-width: 0; }
+  .card > .card-main { flex-basis: 100%; min-width: 0; padding-right: 0; }
   .card-addr { white-space: normal; }
-  .price { order: 2; font-size: 14px; }
-  /* Keep Request viewing stacked directly below View (not side by side) even on phone
-     width — matches the desktop layout and is what actually fits comfortably here. */
-  .card-actions { order: 3; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
+  .card-side { flex-basis: 100%; }
+  .price { font-size: 14px; }
   .view-link, .viewing-link { padding: 7px 12px; font-size: 11.5px; }
 }
 </style>
@@ -536,7 +548,7 @@ to { opacity: 1; transform: translateY(0); }
 <button class="flag-btn" id="lbFlagBtn" style="position:absolute; top:10px; left:10px; right:auto;" aria-label="Save this listing">
 <svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
 </button>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M9.5 19v-5.5h5V19"/></svg>
+<div class="lightbox-mark">R</div>
 </div>
 <div class="lightbox-body">
 <div class="lightbox-addr" id="lbAddr"></div>
@@ -1572,22 +1584,35 @@ const viewLabel = 'View';
 const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">${viewLabel}</a>` : (item.contact ? `<span class="card-contact">${item.contact}</span>` : '');
 const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
 const fav = isFavorited(item);
+// Real listing photos aren't pulled in for any source yet (item.image is always unset), which
+// meant every single card showed the same generic house-outline placeholder icon — visual
+// clutter that added nothing since it never varied. Cards now skip the thumbnail entirely when
+// there's no real photo (i.e. always, for now) and lean on typography/spacing instead — address
+// in the brand's Space Grotesk headline font, source badge + beds/baths grouped above it, and a
+// bolder price + View button. thumbInner()/.card-thumb stay wired up for the day a source
+// actually supplies real photos.
 card.innerHTML = `
 <button class="flag-btn${fav ? ' flagged' : ''}" aria-label="${fav ? 'Remove from saved' : 'Save this listing'}" title="${fav ? 'Remove from saved' : 'Save this listing'}">
 <svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
 </button>
-<div class="card-thumb" onclick="openLightboxAt(${idx})">${thumbInner(item)}</div>
+${item.image ? `<div class="card-thumb">${thumbInner(item)}</div>` : ''}
 <div class="card-main">
-<div class="card-addr"><span class="src ${item.tag}">${item.source}</span>${item.address}</div>
-${meta ? `<div class="card-meta">${meta}</div>` : ''}
+<div class="card-top-row"><span class="src ${item.tag}">${item.source}</span>${meta ? `<span class="card-meta">${meta}</span>` : ''}</div>
+<div class="card-addr">${item.address}</div>
 </div>
+<div class="card-side">
 <div class="price">${item.price || ''}</div>
 <div class="card-actions">${viewBtn}${viewingBtn}</div>
+</div>
 `;
-// Set via JS reference rather than an inline onclick string — addresses can contain quotes/
-// apostrophes (e.g. "St James's Parade") that would otherwise break attribute escaping.
+// Whole card opens the quick-look popup now that there's no dedicated thumbnail to click —
+// the flag button and the actual action links/buttons stop propagation so they still act
+// directly instead of also popping the lightbox open behind them.
+card.onclick = () => openLightboxAt(idx);
 const flagBtn = card.querySelector('.flag-btn');
 flagBtn.onclick = (e) => { e.stopPropagation(); toggleFavorite(clientListingId(item)); };
+const actionsEl = card.querySelector('.card-actions');
+if (actionsEl) actionsEl.onclick = (e) => e.stopPropagation();
 el.appendChild(card);
 });
 }
