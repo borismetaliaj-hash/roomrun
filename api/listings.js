@@ -4,7 +4,20 @@
 const { convert } = require('html-to-text');
 const { Redis } = require('@upstash/redis');
 const webpush = require('web-push');
+const { getUserFromRequest, userStatus } = require('../lib/auth');
 const redis = Redis.fromEnv();
+
+// Previously this endpoint had no access check at all — the paywall in index.html only
+// controlled whether the *browser UI* called this URL, so someone whose trial had ended (or
+// who was never logged in) could still get every live listing just by hitting
+// /api/listings?city=... directly. This closes that: real listings only go out to a request
+// that's either (a) a logged-in user whose trial/subscription is still active, or (b) Vercel's
+// own Cron trigger (see vercel.json), which needs to keep refreshing the cache and sending new-
+// listing push notifications on schedule regardless of any one person's subscription status —
+// it never returns data to a browser, so it isn't a paywall bypass.
+function isVercelCron(req) {
+  return Boolean(req.headers['x-vercel-cron-schedule']) || /vercel-cron/i.test(req.headers['user-agent'] || '');
+}
 
 // --- Push notifications: only armed if both VAPID env vars are actually set on Vercel.
 // Without them this whole feature quietly no-ops (see notifyNewListings below) rather
@@ -796,6 +809,19 @@ module.exports = async (req, res) => {
   // Belt-and-braces: make sure no browser/CDN layer ever caches this response on top of our
   // intentional Redis cache above — that cache is the one source of truth for freshness.
   res.setHeader('Cache-Control', 'no-store');
+
+  if (!isVercelCron(req)) {
+    const user = await getUserFromRequest(req).catch(() => null);
+    const status = userStatus(user);
+    if (!status.accessGranted) {
+      res.status(402).json({
+        error: status.loggedIn ? 'Your free trial has ended — subscribe to keep seeing live listings.' : 'Log in to see live listings.',
+        accessGranted: false
+      });
+      return;
+    }
+  }
+
   const city = (req.query && req.query.city) || 'St Andrews';
   const sources = CITY_SOURCES[city] || [];
   const force = req.query && (req.query.force === '1' || req.query.force === 'true');
