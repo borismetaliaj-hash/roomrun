@@ -868,7 +868,8 @@ async function getSourceData(city, sources, force) {
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
-        return typeof cached === 'string' ? JSON.parse(cached) : cached;
+        const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+        return { ...parsed, isFreshScrape: false };
       }
     } catch (e) {
       // Redis unreachable, fall through to a live scrape rather than failing the request.
@@ -880,33 +881,10 @@ async function getSourceData(city, sources, force) {
   } catch (e) {
     // Caching is best-effort; a failed write just means the next request scrapes live again.
   }
-
-  // --- New-listing detection + push notifications ---
-  // Only runs on a real scrape (i.e. right here, never on a cache hit), so this fires at
-  // most once every CACHE_TTL_SECONDS regardless of how many people load the page.
-  try {
-    const seenKey = 'lastseen:' + city;
-    const prevIds = await redis.smembers(seenKey).catch(() => []);
-    const currentIds = fresh.listings.map(listingId);
-    // Only notify if we have a real baseline from a previous scrape AND this isn't a
-    // wholesale change (e.g. a parser rewrite shifting every id) — that guards against
-    // ever blasting "52 new listings" to everyone from a false positive.
-    if (prevIds && prevIds.length) {
-      const prevSet = new Set(prevIds);
-      const newItems = fresh.listings.filter((l) => !prevSet.has(listingId(l)));
-      if (newItems.length && newItems.length < fresh.listings.length) {
-        await notifyNewListings(city, newItems);
-      }
-    }
-    if (currentIds.length) {
-      await redis.del(seenKey).catch(() => {});
-      await redis.sadd(seenKey, ...currentIds).catch(() => {});
-    }
-  } catch (e) {
-    // Notification bookkeeping must never break the actual listings response.
-  }
-
-  return fresh;
+  // isFreshScrape tells the handler this call actually hit the network rather than returning
+  // a cached result — the new-listing check below only needs to run once per real scrape, not
+  // once per page load (see handler).
+  return { ...fresh, isFreshScrape: true };
 }
 
 module.exports = async (req, res) => {
@@ -939,8 +917,50 @@ module.exports = async (req, res) => {
   // Static listings go first so they read the same way the old client-side merge order did
   // (static snapshot, then whatever's live, then community-submitted) — nothing downstream
   // (sorting/filtering) depends on this order, it's just for continuity.
+  const staticListings = getStaticListings(city);
+  const allListings = [...staticListings, ...sourceData.listings, ...communityListings];
+
+  // --- New-listing detection + push notifications ---
+  // This used to only compare the live-scraped local-agency listings against the previous
+  // scrape — meaning a subscriber never got notified about a genuinely new Rightmove/
+  // OnTheMarket/SpareRoom entry (those are a hand-curated snapshot refreshed separately every
+  // ~2 days, not part of the live scrape) or a new student-submitted listing either. Moved
+  // here so it diffs the *full* list actually shown on the dashboard against what was seen
+  // last time, regardless of which of the three sources it came from. Still gated to real
+  // scrapes (isFreshScrape), so it runs at most once per CACHE_TTL_SECONDS from page-load
+  // traffic, plus once a day guaranteed via the cron even with zero visitors.
+  //
+  // Uses a new Redis key ('lastseen2') rather than reusing the old 'lastseen' one — that old
+  // key only ever held live-agency ids, so comparing today's full combined list against it
+  // would make every static/community listing look "new" on the very first run after this
+  // change and blast everyone at once. A fresh key with an empty baseline means the first run
+  // just seeds silently (see the `if (prevIds.length)` guard below) instead of doing that.
+  if (sourceData.isFreshScrape) {
+    try {
+      const seenKey = 'lastseen2:' + city;
+      const prevIds = await redis.smembers(seenKey).catch(() => []);
+      const currentIds = allListings.map(listingId);
+      // Only notify if we have a real baseline from a previous check AND this isn't a
+      // wholesale change (e.g. a parser rewrite shifting every id, or the very first run) —
+      // guards against ever blasting "40 new listings" to everyone from a false positive.
+      if (prevIds && prevIds.length) {
+        const prevSet = new Set(prevIds);
+        const newItems = allListings.filter((l) => !prevSet.has(listingId(l)));
+        if (newItems.length && newItems.length < allListings.length) {
+          await notifyNewListings(city, newItems);
+        }
+      }
+      if (currentIds.length) {
+        await redis.del(seenKey).catch(() => {});
+        await redis.sadd(seenKey, ...currentIds).catch(() => {});
+      }
+    } catch (e) {
+      // Notification bookkeeping must never break the actual listings response.
+    }
+  }
+
   res.status(200).json({
-    listings: [...getStaticListings(city), ...sourceData.listings, ...communityListings],
+    listings: allListings,
     errors: sourceData.errors,
     checkedAt: sourceData.checkedAt
   });
