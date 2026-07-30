@@ -574,11 +574,12 @@ function parsePeterMoore(text) {
 // Rightmove's terms state outright "Rightmove prohibits the scraping of its content," and
 // OnTheMarket's terms (clause 3.3) ban any automated program beyond their homepage. So
 // these three stay 100% manually-curated static snapshots (hand-typed, refreshed on a
-// recurring schedule by re-checking by hand — see the "refresh every 2 days" scheduled task)
-// in index.html, never touched by an automated request from this server — see
-// STATIC_LISTINGS_STA there. A same-day attempt to auto-verify these via live HTTP requests
-// was reverted for exactly this reason: even a lightweight existence-check is still
-// "automated access" under their terms.
+// recurring schedule by re-checking by hand — see the "refresh every 2 days" scheduled task),
+// never touched by an automated request from this server — see the STATIC_LISTINGS object
+// below (moved here from index.html on 2026-07-30 so it's only served to logged-in,
+// trial-or-subscribed users instead of sitting in plain view-source-able client JS). A
+// same-day attempt to auto-verify these via live HTTP requests was reverted for exactly this
+// reason: even a lightweight existence-check is still "automated access" under their terms.
 
 // --- Alba (St Andrews): their own site, albastandrews.co.uk, has no scraping restriction in
 // its terms (unlike the three portals above), so this is a real live source rather than a
@@ -721,6 +722,110 @@ const CITY_SOURCES = {
   ]
 };
 
+// --- Hand-curated static listings (Rightmove/OnTheMarket/SpareRoom/sample Rightmove pages for
+// the other cities) — moved here from index.html on 2026-07-30. These used to be a plain JS
+// const shipped inside the page's own HTML/JS, which meant anyone could see every one of them
+// (view-source, or just typing the variable name into devtools) with no login and no active
+// trial/subscription at all — the paywall only ever controlled whether the dashboard *rendered*,
+// never who could actually read this data. Serving it from here instead means it goes through
+// the exact same access check as the live-scraped listings below (see module.exports), so it's
+// genuinely gated now, not just hidden behind client-side JS.
+//
+// Rightmove, OnTheMarket and SpareRoom all explicitly prohibit copying/scraping their site
+// content in their Terms of Use, so the St Andrews entries stay a manually curated snapshot
+// (refreshed roughly every 2 days by the scheduled refresh task) rather than a live check — see
+// the comment above CITY_SOURCES for the full reasoning. Alba used to be in this same static
+// snapshot too but moved to a real live source (see parseAlba above) since its own site has no
+// such restriction.
+// Full hand refresh 2026-07-29: every St Andrews listing below was re-checked live on its source
+// site that day and every URL points to that day's actual live listing page (not a generic
+// search results page).
+const STATIC_LISTINGS = {
+  'St Andrews': [
+    { source: 'Rightmove', tag: 'src-rm', address: 'Kate Kennedy Court, St Andrews, Fife, KY16', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/properties/91304577' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'First Floor Flat, South Street, St Andrews, Fife', beds: 3, baths: 1, price: '£3,000 pcm', url: 'https://www.rightmove.co.uk/properties/91280379' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Loches Drive, St Andrews', beds: 2, baths: 2, price: '£2,300 pcm', url: 'https://www.rightmove.co.uk/properties/91257291' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Fleming Place, St. Andrews', beds: 1, baths: 1, price: '£1,550 pcm', url: 'https://www.rightmove.co.uk/properties/91134033' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Adamson Court, St Andrews, Fife, KY16', beds: 3, baths: 2, price: '£2,225 pcm', url: 'https://www.rightmove.co.uk/properties/91132011' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Abbey Street, St Andrews, Fife', beds: 2, baths: 1, price: '£1,600 pcm', url: 'https://www.rightmove.co.uk/properties/90512121' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'St Leonards Fields House, Abbey Walk, St Andrews, KY16', beds: 2, baths: 2, price: '£2,990 pcm', url: 'https://www.rightmove.co.uk/properties/89761173' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Lamond Drive, St. Andrews, Fife, KY16', beds: 4, baths: null, price: '£3,300 pcm', url: 'https://www.rightmove.co.uk/properties/149596712' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Sandyhill Road, St. Andrews, KY16', beds: 2, baths: 1, price: '£1,700 pcm', url: 'https://www.rightmove.co.uk/properties/88127538' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Adamson Court, St Andrews, Fife, KY16', beds: 3, baths: 2, price: '£2,225 pcm', url: 'https://www.onthemarket.com/details/13649689/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Sandyherd Court, St Andrews, KY16', beds: 2, baths: 1, price: '£1,800 pcm', url: 'https://www.onthemarket.com/details/14900005/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Bobby Jones Place, Fife', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.onthemarket.com/details/19970574/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Lawhead School Wynd, St. Andrews, KY16 (room in flat share)', beds: 1, baths: null, price: '£800 pcm', url: 'https://www.onthemarket.com/details/20017024/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Market Street, St Andrews, Fife, KY16', beds: 1, baths: 1, price: '£1,165 pcm', url: 'https://www.onthemarket.com/details/7819855/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Scooniehill Road, St. Andrews, KY16', beds: 7, baths: 2, price: '£3,995 pcm', url: 'https://www.onthemarket.com/details/20008465/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Younger Gardens, Fife', beds: 2, baths: 1, price: '£1,600 pcm', url: 'https://www.onthemarket.com/details/19993400/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Fraser Avenue, Fife', beds: 3, baths: 1, price: '£1,250 pcm', url: 'https://www.onthemarket.com/details/19970591/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Chamberlain Street, Fife', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.onthemarket.com/details/19936927/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'St Andrews Hall, St Andrews, KY16 (room in house share)', beds: 1, baths: null, price: '£1,235 pcm', url: 'https://www.onthemarket.com/details/19933244/' },
+    { source: 'SpareRoom', tag: 'src-spr', address: 'Room in a Shared Flat, Lawhead School Wynd, KY16', beds: null, baths: null, price: '£800 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17761286' },
+    { source: 'SpareRoom', tag: 'src-spr', address: 'St. Andrews furnished room, all bills inc. (KY16)', beds: null, baths: null, price: '£1,000 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/2502220' },
+    { source: 'SpareRoom', tag: 'src-spr', address: 'Double Room Available in Friendly Student House (KY16)', beds: null, baths: null, price: '£800 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17892395' },
+    { source: 'SpareRoom', tag: 'src-spr', address: 'Room in two-bedroom flat, 10 min to town', beds: null, baths: null, price: '£750 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17484242' },
+    { source: 'SpareRoom', tag: 'src-spr', address: 'Double room in warm sunny quiet house (KY16)', beds: null, baths: null, price: '£950 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8847529' }
+  ],
+  // Edinburgh: Rightmove's dedicated student-accommodation search shows 312 results across 13
+  // pages — far too many to hand-curate the way St Andrews' tiny market allows. This is a
+  // labeled sample from page 1 (live-verified 2026-07-15), not exhaustive coverage.
+  'Edinburgh': [
+    { source: 'Rightmove', tag: 'src-rm', address: 'South Oxford Street, Newington, EH8', beds: 3, baths: 1, price: '£2,325 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'East Suffolk Park, Newington, Edinburgh', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Causewayside, Newington, EH9', beds: 3, baths: 1, price: '£2,275 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Montpelier Park, Bruntsfield, EH10', beds: 3, baths: 1, price: '£2,175 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Bruntsfield Avenue, Bruntsfield, EH10', beds: 4, baths: 1, price: '£2,600 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Dalry Road, Dalry, EH11', beds: 2, baths: 1, price: '£1,400 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Logie Green Road, Canonmills, EH7', beds: 3, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Murano Place, off Leith Walk, EH7', beds: 3, baths: 2, price: '£2,275 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Buchanan Street, Leith, EH6', beds: 1, baths: null, price: '£895 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Montpelier Park, EH10', beds: 3, baths: 1, price: '£2,600 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' }
+  ],
+  // Durham, Bath, York, Exeter: real Rightmove student-accommodation listings, live-verified
+  // 2026-07-15 (samples, not exhaustive — same treatment as Edinburgh above).
+  'Durham': [
+    { source: 'Rightmove', tag: 'src-rm', address: 'Newton Drive, Durham, DH1', beds: 5, baths: 2, price: '£1,195 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Lambton House, Durham, DH1', beds: 4, baths: 1, price: '£737 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Durham Terrace, Framwellgate Moor, Durham, DH1 5EH', beds: 2, baths: 1, price: '£823 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'High Street South, Langley Moor, Durham', beds: 2, baths: 1, price: '£780 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Avenue Street, High Shincliffe, Durham, DH1', beds: 2, baths: 1, price: '£1,200 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Highgate, Durham, DH1 4GA', beds: 4, baths: 2, price: '£2,400 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Metropolis House, Durham City, DH1', beds: 1, baths: 1, price: '£950 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'May Street, Durham, DH1', beds: 3, baths: 1, price: '£1,500 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' }
+  ],
+  'Bath': [
+    { source: 'Rightmove', tag: 'src-rm', address: 'Stuart Place, Twerton, Bath', beds: 4, baths: 1, price: '£2,950 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'St Kildas Road, Bath, BA2 3QL', beds: 5, baths: 1, price: '£3,900 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Radway House, Wellsway, Bath', beds: 5, baths: 5, price: '£4,550 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Wellsway, Bath', beds: 1, baths: 1, price: '£910 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Noble House, Stothert Avenue, Bath, BA2', beds: 1, baths: 1, price: '£1,540 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'River Place, Twerton, Bath', beds: 1, baths: 1, price: '£1,149 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'St James\'s Parade, Bath', beds: 2, baths: 1, price: '£2,077 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' }
+  ],
+  'York': [
+    { source: 'Rightmove', tag: 'src-rm', address: 'Haxby Road, York, YO31', beds: 1, baths: null, price: '£802 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Brownlow Street, The Groves, York', beds: 2, baths: 1, price: '£1,517 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Leake Street, York, YO10', beds: 2, baths: 1, price: '£1,550 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Fountayne House, Lawrence Square, York', beds: 3, baths: 2, price: '£2,626 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' }
+  ],
+  'Exeter': [
+    { source: 'Rightmove', tag: 'src-rm', address: 'Flat 25, Concord House, Exeter', beds: 1, baths: 1, price: '£1,084 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'New North Road, Exeter', beds: 1, baths: 1, price: '£1,040 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Commercial Road, Exeter, EX2', beds: 2, baths: 1, price: '£1,900 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Prince Charles Road, Exeter', beds: 3, baths: 2, price: '£2,100 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Blackboy Road, Exeter', beds: 1, baths: 1, price: '£1,062 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Fore Street, Exeter, EX4', beds: 3, baths: 2, price: '£1,950 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Sandford Walk, Exeter, EX1', beds: 4, baths: 2, price: '£1,750 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Bonhay Road, Exeter, EX4', beds: 2, baths: 2, price: '£1,600 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' }
+  ]
+};
+
+function getStaticListings(city) {
+  const list = STATIC_LISTINGS[city] || [];
+  return list.map((x) => ({ ...x, priceValue: parsePrice(x.price) }));
+}
+
 // How long a scraped result stays "fresh" before the next request triggers a real re-check.
 // Community ("Added by students") listings are never cached — they're a cheap Redis read and
 // should show up immediately after someone submits one, not wait for the next scrape window.
@@ -831,8 +936,11 @@ module.exports = async (req, res) => {
     getCommunityListings(city)
   ]);
 
+  // Static listings go first so they read the same way the old client-side merge order did
+  // (static snapshot, then whatever's live, then community-submitted) — nothing downstream
+  // (sorting/filtering) depends on this order, it's just for continuity.
   res.status(200).json({
-    listings: [...sourceData.listings, ...communityListings],
+    listings: [...getStaticListings(city), ...sourceData.listings, ...communityListings],
     errors: sourceData.errors,
     checkedAt: sourceData.checkedAt
   });
