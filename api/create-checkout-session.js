@@ -17,6 +17,14 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // No `subscription_data.trial_period_days` here on purpose — the 7-day free trial is
+    // handled entirely by this app (user.trialStart in Redis, set once at signup and never
+    // touched again, see lib/auth.js), not by Stripe. Someone hitting checkout mid-trial pays
+    // starting today and simply gets to keep using the trial-granted access until it would
+    // have ended anyway (userStatus() grants access on subscriptionActive OR trialDaysLeft>0,
+    // whichever is true). This keeps there being exactly one trial clock per email, ever —
+    // logging out/in never restarts it, and neither does subscribing, cancelling, or resubscribing.
+
     // Boris's Stripe account has "Managed Payments" enabled, which requires API version
     // 2025-03-31.basil or newer — the installed stripe-node library defaults to an older
     // pinned version (2025-02-24.acacia) that Stripe now rejects outright for this account
