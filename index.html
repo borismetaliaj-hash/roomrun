@@ -1782,6 +1782,17 @@ try {
 const url = '/api/listings?city=' + encodeURIComponent(selectedCity) + (force ? '&force=1' : '');
 const res = await fetch(url, { cache: 'no-store' });
 const data = await res.json();
+// The server enforces the trial/subscription gate independently of the client (see
+// api/listings.js) — this is what actually catches a trial that expires while someone
+// already has the dashboard open (a stale authStatus fetched earlier in the session would
+// otherwise keep showing it as accessible). Re-checking auth here and re-opening the
+// paywall covers that case instead of just silently showing an empty list.
+if (res.status === 402) {
+btn.disabled = false; btn.textContent = 'Refresh';
+await checkAuthStatus();
+document.getElementById('paywallOverlay').classList.add('open');
+return;
+}
 allListings = [...cfg.staticListings, ...(data.listings || [])];
 document.getElementById('bigNum').textContent = allListings.length;
 if (cfg.useBackend) {
