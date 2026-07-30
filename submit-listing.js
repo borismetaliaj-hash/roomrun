@@ -2,6 +2,13 @@
 // Lets students self-add a house/room straight into the app. No moderation queue —
 // entries are tagged "Added by students" client-side and clearly distinguished from
 // agency-checked sources. Stored per city in Upstash Redis, capped at 200 most recent.
+//
+// This file was missing from the /api folder entirely (only a stale duplicate sat at the repo
+// root, which Vercel never serves — see vercel.json, only api/* is routed). That meant the
+// "Spotted something?" add-a-house form in index.html was posting to /api/submit-listing and
+// getting a 404 in production — found during a general glitch audit on 2026-07-30, not
+// reported by a user. Restored here so it actually matches what api/listings.js's
+// getCommunityListings() reads back (the 'community:' + city Redis key).
 const { Redis } = require('@upstash/redis');
 const redis = Redis.fromEnv();
 
