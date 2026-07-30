@@ -9,14 +9,52 @@
 // getting a 404 in production — found during a general glitch audit on 2026-07-30, not
 // reported by a user. Restored here so it actually matches what api/listings.js's
 // getCommunityListings() reads back (the 'community:' + city Redis key).
+//
+// DELETE support added the same day: no moderation queue means a bad/spam/test entry has no
+// other way to come down short of touching Redis directly. Gated by the same owner-only login
+// check as admin-stats.js (getUserFromRequest + OWNER_EMAIL) rather than a shared secret, so it
+// only works while logged in as the one account that owns this app — nobody else can call it.
 const { Redis } = require('@upstash/redis');
+const { getUserFromRequest } = require('../lib/auth');
 const redis = Redis.fromEnv();
+
+const OWNER_EMAIL = 'borismetaliaj@gmail.com';
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+
+  if (req.method === 'DELETE') {
+    try {
+      const user = await getUserFromRequest(req);
+      if (!user || user.email !== OWNER_EMAIL) {
+        res.status(401).json({ error: 'Not authorized' });
+        return;
+      }
+      const body = req.body || {};
+      const city = String(body.city || '').trim();
+      const id = String(body.id || '').trim();
+      if (!city || !id) {
+        res.status(400).json({ error: 'city and id are required' });
+        return;
+      }
+      const key = 'community:' + city;
+      const raw = await redis.lrange(key, 0, 199);
+      const items = raw.map((r) => (typeof r === 'string' ? JSON.parse(r) : r));
+      const remaining = items.filter((it) => it.id !== id);
+      await redis.del(key);
+      if (remaining.length) {
+        await redis.rpush(key, ...remaining.map((it) => JSON.stringify(it)));
+      }
+      res.status(200).json({ ok: true, removed: items.length - remaining.length });
+    } catch (e) {
+      res.status(500).json({ error: String(e.message || e) });
+    }
+    return;
+  }
+
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
   try {
