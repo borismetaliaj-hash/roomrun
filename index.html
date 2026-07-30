@@ -1335,17 +1335,11 @@ const STATIC_LISTINGS_STA = [
 { source: 'SpareRoom', tag: 'src-spr', address: 'St. Andrews furnished room, all bills inc. (KY16)', beds: null, baths: null, price: '£1,000 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/2502220' },
 { source: 'SpareRoom', tag: 'src-spr', address: 'Double Room Available in Friendly Student House (KY16)', beds: null, baths: null, price: '£800 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17892395' },
 { source: 'SpareRoom', tag: 'src-spr', address: 'Room in two-bedroom flat, 10 min to town', beds: null, baths: null, price: '£750 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17484242' },
-{ source: 'SpareRoom', tag: 'src-spr', address: 'Double room in warm sunny quiet house (KY16)', beds: null, baths: null, price: '£950 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8847529' },
-{ source: 'Alba', tag: 'src-alba', address: 'Andrew Lang Crescent, St Andrews, Fife, KY16 8YL', beds: 3, baths: 2, price: '£1,900 pcm', url: 'https://www.albastandrews.co.uk/property/andrew-lang-crescent-st-andrews-2/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Reform Street, Tayport, Fife, DD6 9HX', beds: 2, baths: 1, price: '£750 pcm', url: 'https://www.albastandrews.co.uk/property/reform-street-tayport/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Main Street, Guardbridge, Fife, KY16 0UJ', beds: 2, baths: 1, price: '£950 pcm', url: 'https://www.albastandrews.co.uk/property/main-street-guardbridge-5/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Bell Brae, St Andrews, Fife, KY16 9FF', beds: 2, baths: 2, price: '£2,400 pcm', url: 'https://www.albastandrews.co.uk/property/bell-brae-st-andrews/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Fort Avenue, Guardbridge, Fife, KY16 0FL', beds: 3, baths: 1, price: '£1,500 pcm', url: 'https://www.albastandrews.co.uk/property/fort-avenue-guardrbridge/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Tom Morris Drive, St Andrews, Fife, KY16 8HS', beds: 1, baths: 1, price: '£1,100 pcm', url: 'https://www.albastandrews.co.uk/property/tom-morris-drive-st-andrews/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Kindale Cottage, Meadow Road, Kilconquhar, Fife, KY19 1PD', beds: 3, baths: 1, price: '£1,450 pcm', url: 'https://www.albastandrews.co.uk/property/meadow-row-kilconquhar/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Collier Row, Peat Inn, Fife, KY15 5LH', beds: 2, baths: 1, price: '£1,250 pcm', url: 'https://www.albastandrews.co.uk/property/collier-row-peat-inn/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Pilgrim Place, Guardbridge, Fife, KY16 0FP', beds: 2, baths: 1, price: '£1,400 pcm', url: 'https://www.albastandrews.co.uk/property/pilgrim-place-guardbridge/', contactEmail: 'info@albastandrews.co.uk' },
-{ source: 'Alba', tag: 'src-alba', address: 'Fort Avenue, Guardbridge, Fife, KY16 0FL (new build)', beds: 4, baths: 2, price: '£1,950 pcm', url: 'https://www.albastandrews.co.uk/property/fort-avenue-guardbridge-3/', contactEmail: 'info@albastandrews.co.uk' }
+{ source: 'SpareRoom', tag: 'src-spr', address: 'Double room in warm sunny quiet house (KY16)', beds: null, baths: null, price: '£950 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8847529' }
+// Alba used to be a static snapshot here too, alongside Rightmove/OnTheMarket/SpareRoom —
+// moved to a real live source (see api/listings.js -> parseAlba) on 2026-07-30, since Alba's
+// own site has no anti-scraping restriction, unlike the three portals above. Kept out of this
+// array now to avoid showing every Alba listing twice.
 ];
 
 // Edinburgh: Rightmove's dedicated student-accommodation search shows 312 results across 13
@@ -1415,12 +1409,13 @@ return list.map(x => ({ ...x, priceValue: (function(){ const m = x.price.replace
 // passing ?city=) vs manually curated, and what to label as "checked" in the sources strip.
 const CITY_CONFIG = {
 'St Andrews': {
-// Rightmove/OnTheMarket/SpareRoom/Alba's terms all prohibit automated scraping, so
-// staticListings here is a hand-curated snapshot merged in client-side alongside the
-// live-scraped local agencies below — never auto-verified against the real sites (an
-// automated existence-check is still automated access under their terms). It goes stale
-// between manual refreshes; if a listing here turns out to have been let/removed, that's
-// expected — re-curate this array by hand rather than pinging their sites automatically.
+// Rightmove/OnTheMarket/SpareRoom's terms prohibit automated scraping, so staticListings
+// here is a hand-curated snapshot (refreshed roughly every 2 days) merged in client-side
+// alongside the live-scraped local agencies below — never auto-verified against the real
+// sites (an automated existence-check is still automated access under their terms). It goes
+// stale between refreshes; if a listing here turns out to have been let/removed, that's
+// expected. Alba used to be in this same static snapshot but moved to a real live source
+// (see api/listings.js -> parseAlba) since its own site has no such restriction.
 staticListings: withPriceValue(STATIC_LISTINGS_STA),
 sourcesChecked: ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'OnTheMarket', 'SpareRoom', 'Alba'],
 useBackend: true
