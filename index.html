@@ -70,6 +70,12 @@ letter-spacing: -1px;
 }
 .wordmark span { color: var(--accent-2); }
 .tagline { font-size: 15px; color: rgba(255,255,255,0.65); margin: 0 0 32px; line-height: 1.5; }
+.landing-count {
+display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600;
+color: rgba(255,255,255,0.8); background: rgba(46,196,110,0.12); border: 1px solid rgba(46,196,110,0.3);
+border-radius: 999px; padding: 7px 14px; margin: -18px 0 22px;
+}
+.landing-count .dot { width: 7px; height: 7px; border-radius: 50%; background: #2ec46e; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(46,196,110,0.18); }
 
 .city-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; text-align: left; }
 .city-option {
@@ -496,6 +502,7 @@ to { opacity: 1; transform: translateY(0); }
 <span class="eyebrow">Student housing, solved</span>
 <h1 class="wordmark">Room<span>run</span></h1>
 <p class="tagline"><strong style="color:#fff; font-weight:700;">All agencies, one app.</strong><br>Live availability from local letting agents, in one place.</p>
+<div class="landing-count" id="landingCount" style="display:none;"><span class="dot"></span><span id="landingCountText"></span></div>
 <div class="city-list" id="cityList"></div>
 <button class="enter-btn" onclick="enterDashboard()">View Listings →</button>
 <button class="install-btn" onclick="handleInstallClick()" id="installBtn">Add to Home Screen</button>
@@ -924,6 +931,27 @@ el.appendChild(div);
 });
 }
 renderCityList();
+
+// Pre-signup trust signal on #landing: a real, live count so a first-time visitor sees the
+// app already has something in it before hitting the signup wall (there used to be zero
+// preview of any value — auth overlay appeared instantly on "View Listings"). Hits the new
+// cache-only /api/listing-count endpoint, which never triggers a scrape, so this is safe to
+// call from anonymous, pre-login traffic. Fails silently (badge just stays hidden) rather
+// than ever blocking or slowing down the landing page.
+(async function loadLandingCount() {
+try {
+const res = await fetch('/api/listing-count?city=' + encodeURIComponent(selectedCity), { cache: 'no-store' });
+const data = await res.json();
+if (data && typeof data.count === 'number' && data.count > 0) {
+const el = document.getElementById('landingCount');
+const textEl = document.getElementById('landingCountText');
+textEl.textContent = data.count + (data.count === 1 ? ' room tracked in St Andrews right now' : ' rooms tracked in St Andrews right now');
+el.style.display = 'inline-flex';
+}
+} catch (e) {
+// Badge just doesn't show — never surface this to the visitor.
+}
+})();
 
 function playFade(id) {
 const el = document.getElementById(id);
