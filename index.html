@@ -940,7 +940,7 @@ renderCityList();
 // than ever blocking or slowing down the landing page.
 (async function loadLandingCount() {
 try {
-const res = await fetch('/api/listing-count?city=' + encodeURIComponent(selectedCity), { cache: 'no-store' });
+const res = await fetch('/api/listings?count=1&city=' + encodeURIComponent(selectedCity), { cache: 'no-store' });
 const data = await res.json();
 if (data && typeof data.count === 'number' && data.count > 0) {
 const el = document.getElementById('landingCount');
