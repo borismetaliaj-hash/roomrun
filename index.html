@@ -85,6 +85,7 @@ box-shadow: 0 10px 30px -8px rgba(76,126,255,0.55); letter-spacing: 0.2px;
 header.topbar {
 background: linear-gradient(160deg, var(--navy-900), var(--navy-800) 55%, var(--navy-700));
 color: #fff; padding: 18px 24px 46px; display: flex; align-items: center; justify-content: space-between;
+flex-wrap: wrap; row-gap: 12px;
 position: relative; overflow: hidden;
 }
 header.topbar::after {
@@ -307,7 +308,7 @@ padding: 14px 16px; display: flex; justify-content: space-between; align-items: 
 .skel-btn { height: 32px; width: 64px; border-radius: 9px; }
 
 /* ---------- Nav / secondary views ---------- */
-.nav-links { display: flex; gap: 10px; align-items: center; }
+.nav-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; }
 .nav-link {
 font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;
 border: 1px solid rgba(255,255,255,0.22); padding: 7px 14px; border-radius: 999px;
