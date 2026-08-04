@@ -933,6 +933,24 @@ module.exports = async (req, res) => {
   // intentional Redis cache above — that cache is the one source of truth for freshness.
   res.setHeader('Cache-Control', 'no-store');
 
+  // ?count=1 — public, unauthenticated, cache-only listing count for the pre-signup landing
+  // page trust signal (see index.html #landing). Handled as a branch of this same function
+  // rather than a separate api/*.js file: the Hobby plan caps a deployment at 12 Serverless
+  // Functions, and this project is already at that ceiling — a standalone api/listing-count.js
+  // pushed it over and broke the whole build (added 2026-08-04, reverted same day once this
+  // was diagnosed). Returns before the paywall/auth check below since anonymous, pre-signup
+  // traffic is exactly who this is for.
+  if (req.query && (req.query.count === '1' || req.query.count === 'true')) {
+    const city = (req.query && req.query.city) || 'St Andrews';
+    try {
+      const count = await getListingCount(city);
+      res.status(200).json({ count });
+    } catch (e) {
+      res.status(200).json({ count: null });
+    }
+    return;
+  }
+
   if (!isBackgroundRefresh(req)) {
     const user = await getUserFromRequest(req).catch(() => null);
     const status = userStatus(user);
