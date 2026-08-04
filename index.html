@@ -585,7 +585,7 @@ to { opacity: 1; transform: translateY(0); }
 </div>
 <div class="field-group">
 <label class="field-label">Contact</label>
-<input class="field-input" id="reportLink" placeholder="e.g. your email or phone number" required>
+<input class="field-input" id="reportLink" placeholder="e.g. your email, phone number, or Instagram (@handle)" required>
 </div>
 <button class="save-btn" onclick="submitReport()">Add to the list</button>
 <span class="save-note" id="reportNote" style="display:none;"></span>
@@ -1175,6 +1175,11 @@ return `<a class="contact-link" href="mailto:${encodeURIComponent(c).replace(/%4
 }
 if (/^[+\d][\d\s\-()]{6,}$/.test(c)) {
 return `<a class="contact-link" href="tel:${c.replace(/[^\d+]/g, '')}">Call</a>`;
+}
+const igMatch = c.match(/(?:instagram\.com\/|^@)([A-Za-z0-9._]{1,30})/i);
+if (igMatch) {
+const handle = igMatch[1].replace(/\/$/, '');
+return `<a class="contact-link" href="https://instagram.com/${handle}" target="_blank">Instagram</a>`;
 }
 if (/^https?:\/\//i.test(c)) {
 return `<a class="contact-link" href="${c}" target="_blank">Contact</a>`;
