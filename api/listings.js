@@ -11,12 +11,26 @@ const redis = Redis.fromEnv();
 // controlled whether the *browser UI* called this URL, so someone whose trial had ended (or
 // who was never logged in) could still get every live listing just by hitting
 // /api/listings?city=... directly. This closes that: real listings only go out to a request
-// that's either (a) a logged-in user whose trial/subscription is still active, or (b) Vercel's
-// own Cron trigger (see vercel.json), which needs to keep refreshing the cache and sending new-
-// listing push notifications on schedule regardless of any one person's subscription status —
-// it never returns data to a browser, so it isn't a paywall bypass.
+// that's either (a) a logged-in user whose trial/subscription is still active, or (b) a
+// background refresh trigger (see isBackgroundRefresh below), which needs to keep refreshing
+// the cache and sending new-listing push notifications regardless of any one person's
+// subscription status — it never returns data to a browser, so it isn't a paywall bypass.
 function isVercelCron(req) {
   return Boolean(req.headers['x-vercel-cron-schedule']) || /vercel-cron/i.test(req.headers['user-agent'] || '');
+}
+
+// Vercel's own Cron (vercel.json) is capped at once a day on the Hobby plan — that's the whole
+// reason notifications only ever showed up right after someone manually hit Refresh: a genuinely
+// new listing sitting there for hours between cron runs, with nobody's browser open to trigger a
+// fresh scrape, just never got checked. REFRESH_SECRET lets a free external scheduler (e.g.
+// cron-job.org) ping this same endpoint every 20 minutes with ?refreshKey=<secret> attached,
+// getting the same cron-level bypass Vercel's own trigger gets — so new listings actually get
+// caught (and notified) on a real cadence instead of once a day at best. Falls back to `false`
+// (not bypassed) if the env var isn't set yet, rather than ever accepting an empty key.
+function isBackgroundRefresh(req) {
+  if (isVercelCron(req)) return true;
+  const key = req.query && req.query.refreshKey;
+  return Boolean(process.env.REFRESH_SECRET) && key === process.env.REFRESH_SECRET;
 }
 
 // --- Push notifications: only armed if both VAPID env vars are actually set on Vercel.
@@ -893,7 +907,7 @@ module.exports = async (req, res) => {
   // intentional Redis cache above — that cache is the one source of truth for freshness.
   res.setHeader('Cache-Control', 'no-store');
 
-  if (!isVercelCron(req)) {
+  if (!isBackgroundRefresh(req)) {
     const user = await getUserFromRequest(req).catch(() => null);
     const status = userStatus(user);
     if (!status.accessGranted) {
