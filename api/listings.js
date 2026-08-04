@@ -901,6 +901,32 @@ async function getSourceData(city, sources, force) {
   return { ...fresh, isFreshScrape: true };
 }
 
+// Public, cache-only listing count for the pre-signup landing page (see api/listing-count.js).
+// Deliberately never triggers a live scrape — an anonymous, unauthenticated visitor should
+// never be able to make this app do network calls to agency sites, so this only ever reads
+// whatever's already sitting in the srccache Redis key from the last real (auth'd/cron)
+// request. Returns 0 for the live-source part rather than scraping if there's no cache yet;
+// static + community counts are still accurate either way.
+async function getListingCount(city) {
+  const cacheKey = 'srccache:' + city;
+  let liveCount = 0;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+      liveCount = (parsed.listings || []).length;
+    }
+  } catch (e) {
+    // Redis unreachable — just fall back to 0 for this part rather than failing the count.
+  }
+  const staticCount = getStaticListings(city).length;
+  let communityCount = 0;
+  try {
+    communityCount = await redis.llen('community:' + city);
+  } catch (e) {}
+  return staticCount + liveCount + communityCount;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   // Belt-and-braces: make sure no browser/CDN layer ever caches this response on top of our
@@ -979,3 +1005,5 @@ module.exports = async (req, res) => {
     checkedAt: sourceData.checkedAt
   });
 };
+
+module.exports.getListingCount = getListingCount;
