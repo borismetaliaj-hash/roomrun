@@ -197,6 +197,18 @@ font-size: 15px; line-height: 1; display: flex; align-items: center; justify-con
 .lightbox-meta { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
 .lightbox-price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: var(--navy-900); margin-bottom: 16px; }
 .lightbox-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.contact-overlay {
+display: none; position: fixed; inset: 0; background: rgba(11,23,48,0.55);
+z-index: 110; align-items: center; justify-content: center; padding: 20px;
+backdrop-filter: blur(2px);
+}
+.contact-overlay.open { display: flex; }
+.contact-card {
+background: #fff; border-radius: 18px; max-width: 340px; width: 100%; padding: 22px 20px 20px;
+box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4); animation: viewFadeIn .25s ease; position: relative;
+}
+.contact-card-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 10px; padding-right: 24px; }
+.contact-card-text { font-size: 14.5px; color: var(--ink); line-height: 1.5; word-break: break-word; }
 
 /* ---------- Account / auth / paywall ---------- */
 .account-badge {
@@ -486,6 +498,14 @@ to { opacity: 1; transform: translateY(0); }
 </div>
 </div>
 
+<div class="contact-overlay" id="contactOverlay" onclick="if(event.target===this) closeContactInfo()">
+<div class="contact-card">
+<button class="lightbox-close" onclick="closeContactInfo()">✕</button>
+<div class="contact-card-title">Contact</div>
+<div class="contact-card-text" id="contactCardText"></div>
+</div>
+</div>
+
 <div class="auth-overlay" id="authOverlay">
 <div class="auth-card">
 <div class="auth-tabs">
@@ -585,7 +605,7 @@ to { opacity: 1; transform: translateY(0); }
 </div>
 <div class="field-group">
 <label class="field-label">Contact</label>
-<input class="field-input" id="reportLink" placeholder="e.g. your email, phone number, or Instagram (@handle)" required>
+<input class="field-input" id="reportLink" placeholder="e.g. your email, phone number, or Instagram" required>
 </div>
 <button class="save-btn" onclick="submitReport()">Add to the list</button>
 <span class="save-note" id="reportNote" style="display:none;"></span>
@@ -1163,28 +1183,19 @@ return 'mailto:' + encodeURIComponent(item.contactEmail).replace(/%40/g, '@')
 + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
 }
 
-// Turns a student-submitted "Contact" field into a real action button: a mailto: link if it
-// looks like an email, a tel: link if it looks like a phone number, an outbound link if it's a
-// URL, and otherwise just shows the raw text (same as before this field existed).
+// Always just a "Contact" button — clicking it opens a small popup showing exactly what the
+// student wrote in the Contact field (email, phone, Instagram, whatever), rather than trying to
+// guess what kind of contact it is and build a mailto:/tel:/instagram.com link out of it.
 function buildContactAction(item) {
-const c = (item.contact || '').trim();
-if (!c) return '';
-if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) {
-const subject = 'About your Roomrun listing — ' + item.address;
-return `<a class="contact-link" href="mailto:${encodeURIComponent(c).replace(/%40/g, '@')}?subject=${encodeURIComponent(subject)}">Contact</a>`;
+if (!(item.contact || '').trim()) return '';
+return `<button class="contact-link" data-contact-btn="1">Contact</button>`;
 }
-if (/^[+\d][\d\s\-()]{6,}$/.test(c)) {
-return `<a class="contact-link" href="tel:${c.replace(/[^\d+]/g, '')}">Call</a>`;
+function showContactInfo(text) {
+document.getElementById('contactCardText').textContent = text;
+document.getElementById('contactOverlay').classList.add('open');
 }
-const igMatch = c.match(/(?:instagram\.com\/|^@)([A-Za-z0-9._]{1,30})/i);
-if (igMatch) {
-const handle = igMatch[1].replace(/\/$/, '');
-return `<a class="contact-link" href="https://instagram.com/${handle}" target="_blank">Instagram</a>`;
-}
-if (/^https?:\/\//i.test(c)) {
-return `<a class="contact-link" href="${c}" target="_blank">Contact</a>`;
-}
-return `<span class="card-contact">${c}</span>`;
+function closeContactInfo() {
+document.getElementById('contactOverlay').classList.remove('open');
 }
 
 async function removeListing(id, btn) {
@@ -1243,6 +1254,10 @@ el.appendChild(card);
 if (myId) {
 const rBtn = card.querySelector('[data-remove-id]');
 if (rBtn) rBtn.addEventListener('click', () => removeListing(myId, rBtn));
+}
+if (isCommunity && (item.contact || '').trim()) {
+const cBtn = card.querySelector('[data-contact-btn]');
+if (cBtn) cBtn.addEventListener('click', () => showContactInfo(item.contact));
 }
 });
 }
