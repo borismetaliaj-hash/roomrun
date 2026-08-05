@@ -79,6 +79,17 @@ font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer;
 box-shadow: 0 10px 30px -8px rgba(76,126,255,0.55); letter-spacing: 0.2px;
 }
 .enter-btn:hover { filter: brightness(1.06); }
+.install-btn {
+width: 100%; background: transparent; color: rgba(255,255,255,0.85);
+border: 1px solid rgba(127,168,255,0.35); border-radius: 14px; padding: 13px; font-size: 13.5px;
+font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer; margin-top: 10px;
+transition: background .12s, border-color .12s;
+}
+.install-btn:hover { background: rgba(127,168,255,0.1); border-color: rgba(127,168,255,0.6); }
+.install-btn:disabled { opacity: 0.55; cursor: default; }
+.install-steps { text-align: left; background: var(--bg); border-radius: 12px; padding: 14px 16px; margin: 4px 0 18px; }
+.install-steps li { font-size: 13px; color: var(--ink); margin-bottom: 8px; line-height: 1.45; }
+.install-steps li:last-child { margin-bottom: 0; }
 
 /* ---------- Dashboard ---------- */
 #dashboard { display: none; }
@@ -86,7 +97,6 @@ header.topbar {
 background: linear-gradient(160deg, var(--navy-900), var(--navy-800) 55%, var(--navy-700));
 color: #fff; padding: 18px 24px 46px; display: flex; align-items: center; justify-content: space-between;
 position: relative; overflow: hidden;
-flex-wrap: wrap; row-gap: 12px;
 }
 header.topbar::after {
 content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px;
@@ -162,6 +172,37 @@ border: 1.5px solid var(--line); background: var(--bg); border-radius: 10px;
 padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
 }
 
+/* ---------- Price range slider ---------- */
+.price-slider-wrap { width: 100%; padding: 4px 4px 2px; }
+.price-slider-value { font-size: 12.5px; font-weight: 700; color: var(--navy-900); margin-bottom: 10px; }
+.price-slider { position: relative; height: 24px; }
+.price-slider-track {
+position: absolute; top: 50%; left: 0; right: 0; height: 4px; margin-top: -2px;
+background: var(--line); border-radius: 999px;
+}
+.price-slider-fill {
+position: absolute; top: 50%; height: 4px; margin-top: -2px;
+background: var(--accent); border-radius: 999px;
+}
+.price-slider input[type="range"] {
+position: absolute; top: 0; left: 0; width: 100%; height: 24px; margin: 0;
+background: transparent; appearance: none; -webkit-appearance: none; pointer-events: none;
+}
+.price-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 24px; }
+.price-slider input[type="range"]::-moz-range-track { background: transparent; height: 24px; }
+.price-slider input[type="range"]::-webkit-slider-thumb {
+-webkit-appearance: none; appearance: none; pointer-events: auto;
+width: 18px; height: 18px; border-radius: 50%; background: #fff;
+border: 3px solid var(--accent); box-shadow: 0 2px 6px rgba(11,23,48,0.25); cursor: pointer; margin-top: 3px;
+}
+.price-slider input[type="range"]::-moz-range-thumb {
+pointer-events: auto; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+border: 3px solid var(--accent); box-shadow: 0 2px 6px rgba(11,23,48,0.25); cursor: pointer;
+}
+.price-slider input#priceMinRange { z-index: 3; }
+.price-slider input#priceMaxRange { z-index: 4; }
+.filter-btn.dedupe-active { background: var(--navy-900); color: #fff; border-color: var(--navy-900); }
+
 /* ---------- Thumbnails + lightbox ---------- */
 .card-thumb {
 width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0; cursor: pointer;
@@ -184,9 +225,18 @@ box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4); animation: viewFadeIn .25s ease;
 }
 .lightbox-hero {
 height: 160px; background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
-display: flex; align-items: center; justify-content: center; position: relative;
+display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
 }
-.lightbox-hero svg { width: 54px; height: 54px; color: rgba(255,255,255,0.85); }
+.lightbox-hero::before {
+content: ''; position: absolute; top: -50px; right: -40px; width: 180px; height: 180px;
+background: radial-gradient(circle, rgba(76,126,255,0.4), transparent 70%); pointer-events: none;
+}
+.lightbox-mark {
+width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+display: flex; align-items: center; justify-content: center; color: #fff; position: relative;
+font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px;
+box-shadow: 0 14px 28px -8px rgba(76,126,255,0.55);
+}
 .lightbox-close {
 position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 50%;
 background: rgba(255,255,255,0.18); color: #fff; border: none; cursor: pointer;
@@ -197,18 +247,6 @@ font-size: 15px; line-height: 1; display: flex; align-items: center; justify-con
 .lightbox-meta { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
 .lightbox-price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: var(--navy-900); margin-bottom: 16px; }
 .lightbox-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.contact-overlay {
-display: none; position: fixed; inset: 0; background: rgba(11,23,48,0.55);
-z-index: 110; align-items: center; justify-content: center; padding: 20px;
-backdrop-filter: blur(2px);
-}
-.contact-overlay.open { display: flex; }
-.contact-card {
-background: #fff; border-radius: 18px; max-width: 340px; width: 100%; padding: 22px 20px 20px;
-box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4); animation: viewFadeIn .25s ease; position: relative;
-}
-.contact-card-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 10px; padding-right: 24px; }
-.contact-card-text { font-size: 14.5px; color: var(--ink); line-height: 1.5; word-break: break-word; }
 
 /* ---------- Account / auth / paywall ---------- */
 .account-badge {
@@ -259,19 +297,33 @@ font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px;
 }
 .paywall-price { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--navy-900); margin: 14px 0 4px; }
 .paywall-price span { font-size: 14px; font-weight: 600; color: var(--muted); }
-.card-list { display: flex; flex-direction: column; gap: 9px; }
+.card-list { display: flex; flex-direction: column; gap: 10px; }
 .card {
-background: #fff; border: 1px solid var(--line); border-radius: 14px;
-padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
-transition: box-shadow .15s, transform .15s;
+background: #fff; border: 1px solid var(--line); border-radius: 16px;
+padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+transition: box-shadow .18s, transform .18s, border-color .18s;
+position: relative; cursor: pointer;
 }
-.card:hover { box-shadow: 0 6px 20px rgba(11,23,48,0.08); transform: translateY(-1px); }
-.card-main { flex: 1; min-width: 0; }
-.card-addr { font-weight: 600; font-size: 14.5px; }
-.card-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; margin-left: 1px; }
+.flag-btn {
+position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.92); border: none;
+width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+justify-content: center; color: var(--muted); padding: 0; transition: color .12s, transform .1s;
+box-shadow: 0 2px 8px rgba(11,23,48,0.08);
+}
+.flag-btn:hover { transform: scale(1.08); }
+.flag-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.flag-btn.flagged { color: var(--accent); }
+.flag-btn.flagged svg { fill: var(--accent); }
+.filter-btn.fav-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.card:hover { box-shadow: 0 14px 32px -10px rgba(11,23,48,0.16); transform: translateY(-2px); border-color: rgba(76,126,255,0.3); }
+.card > .card-main { flex: 1; min-width: 0; padding-right: 26px; }
+.card-top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.card-addr { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15.5px; letter-spacing: -0.1px; color: var(--navy-900); line-height: 1.3; }
+.card-meta { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+.card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
 .src {
 font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
-padding: 3px 8px; border-radius: 6px; margin-right: 8px;
+padding: 3px 8px; border-radius: 6px;
 }
 .src-sapl { background: #F1E6FF; color: #6A1AB0; }
 .src-brad { background: #E6F7EC; color: #1A7A3D; }
@@ -290,12 +342,14 @@ padding: 3px 8px; border-radius: 6px; margin-right: 8px;
 .src-standp { background: #EAF0FF; color: #2445A8; }
 .src-standys { background: #FFF6E0; color: #A66A00; }
 .card-contact { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
-.price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: var(--navy-900); white-space: nowrap; }
+.price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16.5px; color: var(--navy-900); white-space: nowrap; }
 .view-link {
 font-size: 12px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
-padding: 8px 16px; border-radius: 9px; text-decoration: none; white-space: nowrap;
-font-family: 'Space Grotesk', sans-serif;
+padding: 9px 17px; border-radius: 9px; text-decoration: none; white-space: nowrap;
+font-family: 'Space Grotesk', sans-serif; transition: transform .12s, box-shadow .12s;
+box-shadow: 0 6px 16px -6px rgba(11,23,48,0.35);
 }
+.view-link:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(11,23,48,0.45); }
 .card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .viewing-link {
 font-size: 11px; font-weight: 700; color: var(--accent); text-decoration: none; white-space: nowrap;
@@ -315,6 +369,18 @@ font-family: 'Space Grotesk', sans-serif; transition: background .12s, border-co
 }
 .remove-link:hover { background: rgba(192,41,60,0.08); border-color: rgba(192,41,60,0.6); }
 .remove-link:disabled { opacity: 0.6; cursor: default; }
+.contact-overlay {
+display: none; position: fixed; inset: 0; background: rgba(11,23,48,0.55);
+z-index: 110; align-items: center; justify-content: center; padding: 20px;
+backdrop-filter: blur(2px);
+}
+.contact-overlay.open { display: flex; }
+.contact-card {
+background: #fff; border-radius: 18px; max-width: 340px; width: 100%; padding: 22px 20px 20px;
+box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4); animation: viewFadeIn .25s ease; position: relative;
+}
+.contact-card-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 10px; padding-right: 24px; }
+.contact-card-text { font-size: 14.5px; color: var(--ink); line-height: 1.5; word-break: break-word; }
 .empty { font-size: 13px; color: #97A0B5; padding: 18px 2px; text-align: center; }
 .err-note { font-size: 11px; color: #C0392B; text-align: center; margin-top: 10px; }
 
@@ -332,7 +398,7 @@ padding: 14px 16px; display: flex; justify-content: space-between; align-items: 
 .skel-btn { height: 32px; width: 64px; border-radius: 9px; }
 
 /* ---------- Nav / secondary views ---------- */
-.nav-links { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.nav-links { display: flex; gap: 10px; align-items: center; }
 .nav-link {
 font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;
 border: 1px solid rgba(255,255,255,0.22); padding: 7px 14px; border-radius: 999px;
@@ -361,7 +427,7 @@ padding: 11px 22px; font-size: 12.5px; font-weight: 700; cursor: pointer; letter
 font-family: 'Space Grotesk', sans-serif; box-shadow: 0 8px 20px -8px rgba(11,23,48,0.45);
 }
 .save-btn:hover { filter: brightness(1.08); }
-.save-note { font-size: 11.5px; color: #1A7A3D; margin-left: 10px; font-weight: 700; }
+.save-note { display: block; font-size: 12px; color: #1A7A3D; margin-top: 8px; font-weight: 600; max-width: 420px; line-height: 1.4; }
 .panel-block {
 background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 24px;
 margin-bottom: 18px; position: relative; overflow: hidden;
@@ -399,6 +465,34 @@ from { opacity: 0; transform: translateY(10px); }
 to { opacity: 1; transform: translateY(0); }
 }
 .view-fade { animation: viewFadeIn .4s ease; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 480px) {
+  .wordmark { font-size: 42px; }
+  header.topbar { flex-wrap: wrap; row-gap: 12px; padding: 16px 16px 40px; }
+  .nav-links { flex-wrap: wrap; gap: 8px; width: 100%; }
+  .nav-link { font-size: 11px; padding: 6px 11px; }
+  .account-badge { font-size: 10.5px; padding: 5px 10px; }
+  .wrap { padding: 18px 14px 36px; }
+  .hero { padding: 24px 14px; }
+  .hero .big { font-size: 42px; }
+  .controls-panel { padding: 14px; }
+  .controls-row { flex-direction: column; align-items: stretch; }
+  .controls-row > div { width: 100%; }
+  .sort-select { flex: 1 1 auto; min-width: 0; }
+
+  /* Cards: stack instead of forcing address + price + two nowrap buttons into one row —
+     that's what was causing text to overlap on phone-width screens. There's no thumbnail to
+     worry about any more (cards only show one when a source actually has a real photo), so
+     this just drops card-main and card-side each onto their own full-width row. */
+  .card { flex-wrap: wrap; row-gap: 10px; padding: 14px; }
+  .card-thumb { display: none; }
+  .card > .card-main { flex-basis: 100%; min-width: 0; padding-right: 0; }
+  .card-addr { white-space: normal; }
+  .card-side { flex-basis: 100%; }
+  .price { font-size: 14px; }
+  .view-link, .viewing-link { padding: 7px 12px; font-size: 11.5px; }
+}
 </style>
 </head>
 <body>
@@ -410,6 +504,17 @@ to { opacity: 1; transform: translateY(0); }
 <p class="tagline"><strong style="color:#fff; font-weight:700;">All agencies, one app.</strong><br>Live availability from local letting agents, in one place.</p>
 <div class="city-list" id="cityList"></div>
 <button class="enter-btn" onclick="enterDashboard()">View Listings →</button>
+<button class="install-btn" onclick="handleInstallClick()" id="installBtn">Add to Home Screen</button>
+</div>
+</div>
+
+<div class="auth-overlay" id="installOverlay" onclick="if(event.target===this) closeInstallOverlay()">
+<div class="auth-card" style="text-align:center;">
+<div class="paywall-icon">R</div>
+<div class="auth-title" id="installTitle">Add Roomrun to your Home Screen</div>
+<div class="auth-sub" id="installSub">Once it's added, it opens straight from your home screen like a normal app — no browser bar, and notifications work properly too.</div>
+<ol class="install-steps" id="installSteps"></ol>
+<button class="auth-submit-btn" onclick="closeInstallOverlay()">Got it</button>
 </div>
 </div>
 
@@ -462,21 +567,20 @@ to { opacity: 1; transform: translateY(0); }
 <option value="4">4 bed</option>
 <option value="5">5+ bed</option>
 </select>
-<select class="sort-select" id="priceMinSelect" onchange="onPriceMinChange()">
-<option value="0">Min price: Any</option>
-<option value="800">Over £800</option>
-<option value="1200">Over £1,200</option>
-<option value="1600">Over £1,600</option>
-<option value="2000">Over £2,000</option>
-</select>
-<select class="sort-select" id="priceMaxSelect" onchange="onPriceMaxChange()">
-<option value="0">Max price: Any</option>
-<option value="800">Under £800</option>
-<option value="1200">Under £1,200</option>
-<option value="1600">Under £1,600</option>
-<option value="2000">Under £2,000</option>
-<option value="3000">Under £3,000</option>
-</select>
+<button class="filter-btn" id="dedupeBtn" onclick="toggleDedupe()">Hide duplicates</button>
+<button class="filter-btn" id="favBtn" onclick="toggleFavoritesOnly()">♥ Saved</button>
+</div>
+</div>
+<div class="controls-label">Price range</div>
+<div class="controls-row">
+<div class="price-slider-wrap">
+<div class="price-slider-value" id="priceRangeLabel">Any price</div>
+<div class="price-slider">
+<div class="price-slider-track"></div>
+<div class="price-slider-fill" id="priceRangeFill"></div>
+<input type="range" id="priceMinRange" min="0" max="3000" step="50" value="0" oninput="onPriceRangeChange()">
+<input type="range" id="priceMaxRange" min="0" max="3000" step="50" value="3000" oninput="onPriceRangeChange()">
+</div>
 </div>
 </div>
 </div>
@@ -487,7 +591,10 @@ to { opacity: 1; transform: translateY(0); }
 <div class="lightbox-card">
 <div class="lightbox-hero">
 <button class="lightbox-close" onclick="closeLightbox()">✕</button>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M9.5 19v-5.5h5V19"/></svg>
+<button class="flag-btn" id="lbFlagBtn" style="position:absolute; top:10px; left:10px; right:auto;" aria-label="Save this listing">
+<svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
+</button>
+<div class="lightbox-mark">R</div>
 </div>
 <div class="lightbox-body">
 <div class="lightbox-addr" id="lbAddr"></div>
@@ -517,7 +624,7 @@ to { opacity: 1; transform: translateY(0); }
 <div class="auth-error" id="authError"></div>
 <div class="field-group">
 <label class="field-label">Email</label>
-<input class="field-input" type="email" id="authEmail" placeholder="you@st-andrews.ac.uk" autocomplete="email">
+<input class="field-input" type="email" id="authEmail" placeholder="your email address" autocomplete="email">
 </div>
 <div class="field-group">
 <label class="field-label">Password</label>
@@ -552,6 +659,29 @@ to { opacity: 1; transform: translateY(0); }
 <div class="panel-eyebrow">Step 1</div>
 <div class="panel-title">Turn on push notifications</div>
 <p class="panel-intro">Get pinged the moment a new listing goes up — no need to keep checking back. Works even when the app is closed, once it's installed to your home screen.</p>
+
+<div class="field-group">
+<label class="field-label">Only notify me about (optional — leave blank for everything)</label>
+</div>
+<div class="field-group">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Bedrooms</label>
+<div class="filters" id="notifyBedsRow"></div>
+</div>
+<div class="field-group" style="display:flex; gap:10px;">
+<div style="flex:1;">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Min price (pcm)</label>
+<input class="field-input" id="notifyMinPrice" type="number" inputmode="numeric" placeholder="Any">
+</div>
+<div style="flex:1;">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Max price (pcm)</label>
+<input class="field-input" id="notifyMaxPrice" type="number" inputmode="numeric" placeholder="Any">
+</div>
+</div>
+<div class="field-group">
+<label class="field-label" style="font-weight:500; font-size:12px; opacity:.75;">Agencies</label>
+<div class="filters" id="notifyAgenciesRow"></div>
+</div>
+
 <button class="save-btn" id="notifyBtn" onclick="enableNotifications()">Enable notifications</button>
 <span class="save-note" id="notifyNote" style="display:none;"></span>
 </div>
@@ -566,7 +696,7 @@ to { opacity: 1; transform: translateY(0); }
 </div>
 <div class="field-group">
 <label class="field-label">Email</label>
-<input class="field-input" id="alertEmail" type="email" placeholder="you@st-andrews.ac.uk">
+<input class="field-input" id="alertEmail" type="email" placeholder="your email address">
 </div>
 <button class="save-btn" onclick="saveMyDetails()">Save details</button>
 <span class="save-note" id="saveNote" style="display:none;">Saved ✓</span>
@@ -621,7 +751,21 @@ navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW registr
 });
 }
 
-const VAPID_PUBLIC_KEY = 'BAGVrK9U73i8lsibBbwShBRVhExBFL0jAQNrfKPAMEJ9D-N1x3XWwbhUOWha9pcYwadA83EPiEflfu9BSMEy774';
+// Shared device/browser detection used by both the "Add to Home Screen" button and the push
+// notification messaging below — they run into the exact same handful of real-world cases
+// (Instagram/TikTok's in-app browser, iPhone Safari, already-installed), so this is worked out
+// once instead of twice.
+function deviceContext() {
+const ua = navigator.userAgent || '';
+return {
+isInApp: /Instagram|FBAN|FBAV|TikTok|Line\//i.test(ua),
+isIOS: /iPad|iPhone|iPod/.test(ua) && !window.MSStream,
+isAndroid: /Android/.test(ua),
+isStandalone: window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches
+};
+}
+
+const VAPID_PUBLIC_KEY = 'BMfqq5Ke227chFM8zPy-OnpW79XE8Pfl3RcB5R5H-OASoxK00pEB5zEO9PPaA-G2GaLcDypZgvVbFxEQCcmc0mc';
 
 function urlBase64ToUint8Array(base64String) {
 const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -630,11 +774,99 @@ const rawData = atob(base64);
 return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+// Web Push genuinely isn't available in a lot of situations that have nothing to do with
+// this app — this tries to name the actual reason instead of a flat "not supported", since
+// the two by far most common causes for a student on their phone are: (1) opening the link
+// inside Instagram/TikTok/Facebook's built-in browser, which blocks push entirely, and
+// (2) iPhone Safari, which only allows push for sites added to the Home Screen first.
+function pushUnsupportedReason() {
+const ctx = deviceContext();
+if (ctx.isInApp) {
+return 'This link is open inside Instagram/TikTok\'s built-in browser, which blocks notifications. Tap ⋯ or the browser icon and choose "Open in Safari/Chrome", then try again from there.';
+}
+if (ctx.isIOS && !ctx.isStandalone) {
+return 'On iPhone, notifications only work once Roomrun is added to your Home Screen. Use the "Add to Home Screen" button below, open Roomrun from there, and try again.';
+}
+return 'Push isn\'t supported in this browser — try Safari or Chrome instead.';
+}
+
+// --- "Add to Home Screen" ---
+// Chrome/Edge/Android fire beforeinstallprompt and let JS trigger the native install dialog
+// directly. iOS Safari and every in-app browser (Instagram, TikTok) have no such API at all —
+// the only thing possible there is showing the person exactly which manual steps to tap.
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+e.preventDefault();
+deferredInstallPrompt = e;
+});
+
+function markInstallBtnState() {
+const btn = document.getElementById('installBtn');
+if (!btn) return;
+if (deviceContext().isStandalone) {
+btn.textContent = 'Added to Home Screen ✓';
+btn.disabled = true;
+}
+}
+window.addEventListener('load', markInstallBtnState);
+window.addEventListener('appinstalled', markInstallBtnState);
+
+function openInstallOverlay(title, sub, steps) {
+document.getElementById('installTitle').textContent = title;
+document.getElementById('installSub').textContent = sub;
+document.getElementById('installSteps').innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+document.getElementById('installOverlay').classList.add('open');
+}
+function closeInstallOverlay() {
+document.getElementById('installOverlay').classList.remove('open');
+}
+
+async function handleInstallClick() {
+const ctx = deviceContext();
+if (ctx.isStandalone) return;
+
+if (ctx.isInApp) {
+openInstallOverlay(
+'Open this in your real browser first',
+'Instagram/TikTok\'s built-in browser can\'t install apps to your Home Screen — only Safari or Chrome can.',
+['Tap the ⋯ or ✈ icon in the top corner', 'Choose "Open in Safari" (or "Open in Browser")', 'Tap "Add to Home Screen" again once it opens there']
+);
+return;
+}
+
+if (deferredInstallPrompt) {
+deferredInstallPrompt.prompt();
+const { outcome } = await deferredInstallPrompt.userChoice;
+deferredInstallPrompt = null;
+if (outcome === 'accepted') markInstallBtnState();
+return;
+}
+
+if (ctx.isIOS) {
+// Confirmed against an actual recording of this flow: on current iOS, "Add to Home
+// Screen" isn't one of the icons the share sheet opens with — it's hidden behind
+// "View More", which is easy to miss the first time.
+openInstallOverlay(
+'Add Roomrun to your Home Screen',
+'iPhone doesn\'t let apps trigger this automatically — a few taps in Safari does it.',
+['Tap the Share icon next to the address bar (the square with an arrow)', 'In the row of icons, tap "View More" (it\'s the last one, second from AirDrop)', 'Scroll down and tap "Add to Home Screen"', 'Tap "Add" in the top right — Roomrun now opens like a normal app']
+);
+return;
+}
+
+// Desktop / a browser that doesn't support beforeinstallprompt (e.g. Firefox)
+openInstallOverlay(
+'Add Roomrun to your Home Screen',
+'Your browser menu has this option even though it can\'t be triggered automatically here.',
+['Open your browser\'s menu (usually ⋮ or ☰)', 'Look for "Install app" or "Add to Home Screen"', 'Confirm — Roomrun now opens like a normal app']
+);
+}
+
 async function enableNotifications() {
 const btn = document.getElementById('notifyBtn');
 const note = document.getElementById('notifyNote');
 if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-note.textContent = 'Push isn\'t supported in this browser.';
+note.textContent = pushUnsupportedReason();
 note.style.display = 'inline';
 return;
 }
@@ -655,10 +887,19 @@ userVisibleOnly: true,
 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 });
 }
+const minPriceVal = document.getElementById('notifyMinPrice').value;
+const maxPriceVal = document.getElementById('notifyMaxPrice').value;
+const filters = {
+beds: [...notifyBedsSelected],
+agencies: [...notifyAgenciesSelected],
+minPrice: minPriceVal === '' ? null : Number(minPriceVal),
+maxPrice: maxPriceVal === '' ? null : Number(maxPriceVal)
+};
+saveNotifyPrefs();
 await fetch('/api/subscribe', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify(sub)
+body: JSON.stringify({ subscription: sub, city: selectedCity, filters })
 });
 note.textContent = 'Notifications on ✓';
 note.style.display = 'inline';
@@ -725,9 +966,9 @@ const el = document.getElementById('accountBadge');
 if (!authStatus.loggedIn) { el.style.display = 'none'; return; }
 el.style.display = 'flex';
 if (authStatus.subscriptionActive) {
-el.innerHTML = `<span>${authStatus.email}</span><span class="logout-link" onclick="logout()">Log out</span>`;
+el.innerHTML = `<span>${authStatus.email}</span><span class="upgrade-link" onclick="openBillingPortal()">Manage subscription</span><span class="logout-link" onclick="logout()">Log out</span>`;
 } else {
-el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="startCheckout()">Upgrade</span><span class="logout-link" onclick="logout()">Log out</span>`;
+el.innerHTML = `<span class="trial-days">${authStatus.trialDaysLeft} day${authStatus.trialDaysLeft === 1 ? '' : 's'} left</span><span class="upgrade-link" onclick="openPaywall('upgrade')">Subscribe</span><span class="logout-link" onclick="logout()">Log out</span>`;
 }
 }
 
@@ -780,9 +1021,36 @@ renderAccountBadge();
 showLanding();
 }
 
+// Clicking "Upgrade" in the top nav (still mid-trial) used to call startCheckout()
+// directly without ever opening #paywallOverlay — so if the checkout request failed for
+// any reason, the error message got written into an element that was still display:none,
+// making it look like the button did nothing at all. This opens the modal first (with
+// copy that makes sense for someone upgrading early, not "your free week's up"), so any
+// error is actually visible, and success just redirects straight to Stripe anyway.
+function openPaywall(reason) {
+const titleEl = document.querySelector('#paywallOverlay .auth-title');
+const subEl = document.querySelector('#paywallOverlay .auth-sub');
+if (reason === 'upgrade') {
+if (titleEl) titleEl.textContent = 'Subscribe to Roomrun';
+if (subEl) subEl.textContent = 'Keep seeing every St Andrews listing from every agency, updated live.';
+} else {
+if (titleEl) titleEl.textContent = "Your free week's up";
+if (subEl) subEl.textContent = 'Keep seeing every St Andrews listing from every agency, updated live.';
+}
+const errEl = document.getElementById('paywallError');
+if (errEl) errEl.classList.remove('show');
+document.getElementById('landing').style.display = 'none';
+document.getElementById('dashboard').style.display = 'block';
+document.getElementById('paywallOverlay').classList.add('open');
+}
+
 async function startCheckout() {
 const btn = document.getElementById('paywallBtn') || document.querySelector('.upgrade-link');
 const errEl = document.getElementById('paywallError');
+// Belt-and-braces: make sure the modal holding the error message is actually open,
+// no matter what triggered startCheckout(), so a failure is never silently invisible.
+const overlay = document.getElementById('paywallOverlay');
+if (overlay && !overlay.classList.contains('open')) overlay.classList.add('open');
 if (errEl) errEl.classList.remove('show');
 try {
 const res = await fetch('/api/create-checkout-session', { method: 'POST' });
@@ -794,6 +1062,22 @@ return;
 window.location.href = data.url;
 } catch (e) {
 if (errEl) { errEl.textContent = 'Could not reach the server. Try again.'; errEl.classList.add('show'); }
+}
+}
+
+// Lets an already-subscribed user cancel or update their card themselves via Stripe's
+// hosted Billing Portal, instead of having to email Boris to cancel it for them manually.
+async function openBillingPortal() {
+try {
+const res = await fetch('/api/create-portal-session', { method: 'POST' });
+const data = await res.json();
+if (!res.ok || !data.url) {
+alert(data.error || 'Could not open the billing portal. Try again.');
+return;
+}
+window.location.href = data.url;
+} catch (e) {
+alert('Could not reach the server. Try again.');
 }
 }
 
@@ -824,15 +1108,17 @@ function enterDashboard() {
 proceedToDashboard();
 }
 
-// If we're bouncing back from Stripe Checkout, re-check status right away so a successful
-// subscription (webhook usually lands within a second or two) unlocks the app without a
-// manual refresh.
-(function handleCheckoutReturn() {
+// #landing always shows first on load — that's intentional (Boris wants the "View Listings"
+// button to be a real click-through, not skipped). This just quietly refreshes authStatus in
+// the background on every load (covers the Stripe-checkout-return case too: a subscription
+// that just went through via webhook is already reflected by the time "View Listings" is
+// clicked), without forcing navigation straight into the dashboard.
+(async function initSession() {
 const params = new URLSearchParams(window.location.search);
 if (params.get('checkout')) {
 window.history.replaceState({}, '', window.location.pathname);
-checkAuthStatus();
 }
+await checkAuthStatus();
 })();
 
 function showLanding() {
@@ -923,7 +1209,72 @@ hideAllViews();
 document.getElementById('alertsView').style.display = 'block';
 loadMyDetails();
 renderSiteCards();
+loadNotifyPrefs();
+renderNotifyFilters();
 playFade('alertsView');
+}
+
+// --- Notification preferences: which new listings someone actually wants pinged about.
+// Persisted in localStorage (like name/email above) so the chips stay picked next time this
+// panel opens, and sent up to /api/subscribe alongside the push subscription itself so
+// api/listings.js's send step can filter server-side before notifying anyone.
+const NOTIFY_BED_OPTIONS = ['1', '2', '3', '4+'];
+const NOTIFY_AGENCY_OPTIONS = ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'SpareRoom'];
+let notifyBedsSelected = new Set();
+let notifyAgenciesSelected = new Set();
+
+function loadNotifyPrefs() {
+try {
+const raw = localStorage.getItem('rw_notifyPrefs');
+if (!raw) return;
+const p = JSON.parse(raw);
+notifyBedsSelected = new Set(p.beds || []);
+notifyAgenciesSelected = new Set(p.agencies || []);
+if (p.minPrice != null) document.getElementById('notifyMinPrice').value = p.minPrice;
+if (p.maxPrice != null) document.getElementById('notifyMaxPrice').value = p.maxPrice;
+} catch (e) { /* corrupt/missing — just start blank */ }
+}
+
+function saveNotifyPrefs() {
+const minPrice = document.getElementById('notifyMinPrice').value;
+const maxPrice = document.getElementById('notifyMaxPrice').value;
+localStorage.setItem('rw_notifyPrefs', JSON.stringify({
+beds: [...notifyBedsSelected], agencies: [...notifyAgenciesSelected],
+minPrice: minPrice === '' ? null : Number(minPrice),
+maxPrice: maxPrice === '' ? null : Number(maxPrice)
+}));
+}
+
+function renderNotifyFilters() {
+const bedsEl = document.getElementById('notifyBedsRow');
+bedsEl.innerHTML = '';
+NOTIFY_BED_OPTIONS.forEach(b => {
+const btn = document.createElement('button');
+btn.type = 'button';
+btn.className = 'filter-btn' + (notifyBedsSelected.has(b) ? ' multi-active' : '');
+btn.textContent = b + (b === '4+' ? ' beds' : (b === '1' ? ' bed' : ' beds'));
+btn.onclick = () => {
+if (notifyBedsSelected.has(b)) notifyBedsSelected.delete(b); else notifyBedsSelected.add(b);
+saveNotifyPrefs();
+renderNotifyFilters();
+};
+bedsEl.appendChild(btn);
+});
+
+const agEl = document.getElementById('notifyAgenciesRow');
+agEl.innerHTML = '';
+NOTIFY_AGENCY_OPTIONS.forEach(a => {
+const btn = document.createElement('button');
+btn.type = 'button';
+btn.className = 'filter-btn' + (notifyAgenciesSelected.has(a) ? ' multi-active' : '');
+btn.textContent = a;
+btn.onclick = () => {
+if (notifyAgenciesSelected.has(a)) notifyAgenciesSelected.delete(a); else notifyAgenciesSelected.add(a);
+saveNotifyPrefs();
+renderNotifyFilters();
+};
+agEl.appendChild(btn);
+});
 }
 
 function saveMyDetails() {
@@ -949,28 +1300,52 @@ document.getElementById('reportView').style.display = 'block';
 playFade('reportView');
 }
 
-// Listings this device has submitted are remembered locally (by id, handed back once at
-// creation time) so the "Remove" button on a community card can be shown only to whoever
-// actually added it — no login required, and the id is never exposed via GET /api/listings
-// to anyone else, so nobody else can guess it.
+// Private per-device ownership record for self-service listing removal — see
+// api/submit-listing.js for the server-side half (DELETE by id). Never exposed via
+// GET /api/listings; only known to whichever browser originally submitted the listing.
 function getMyListings() {
 try { return JSON.parse(localStorage.getItem('rw_my_listings') || '[]'); } catch (e) { return []; }
 }
 function rememberMyListing(id, city, address) {
-const mine = getMyListings();
-mine.push({ id, city, address });
-localStorage.setItem('rw_my_listings', JSON.stringify(mine));
+const list = getMyListings();
+list.push({ id, city, address });
+try { localStorage.setItem('rw_my_listings', JSON.stringify(list.slice(-50))); } catch (e) {}
 }
 function forgetMyListing(id) {
-const mine = getMyListings().filter(m => m.id !== id);
-localStorage.setItem('rw_my_listings', JSON.stringify(mine));
+const list = getMyListings().filter(m => m.id !== id);
+try { localStorage.setItem('rw_my_listings', JSON.stringify(list)); } catch (e) {}
 }
 function myListingId(item) {
 if (item.tag !== 'src-community') return null;
 const match = getMyListings().find(m => m.city === selectedCity && m.address === item.address);
 return match ? match.id : null;
 }
-
+async function removeListing(id, btn) {
+if (btn) { btn.disabled = true; btn.textContent = 'Removing…'; }
+try {
+const res = await fetch('/api/submit-listing', {
+method: 'DELETE',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ city: selectedCity, id })
+});
+if (!res.ok) throw new Error('failed');
+forgetMyListing(id);
+await runCheck(true);
+} catch (e) {
+if (btn) { btn.disabled = false; btn.textContent = 'Remove'; }
+}
+}
+function buildContactAction(item) {
+if (!(item.contact || '').trim()) return '';
+return `<button class="contact-link" data-contact-btn="1">Contact</button>`;
+}
+function showContactInfo(text) {
+document.getElementById('contactCardText').textContent = text;
+document.getElementById('contactOverlay').classList.add('open');
+}
+function closeContactInfo() {
+document.getElementById('contactOverlay').classList.remove('open');
+}
 async function submitReport() {
 const addr = document.getElementById('reportAddr').value.trim();
 const price = document.getElementById('reportPrice').value.trim();
@@ -984,7 +1359,7 @@ note.style.display = 'inline';
 return;
 }
 if (!contact) {
-note.textContent = 'Add a contact so people can reach out about it.';
+note.textContent = 'Add a way for people to contact you.';
 note.style.display = 'inline';
 return;
 }
@@ -996,10 +1371,8 @@ headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({ city: selectedCity, address: addr, price, beds, contact })
 });
 if (!res.ok) throw new Error('request failed');
-const data = await res.json().catch(() => ({}));
-if (data && data.id) {
-rememberMyListing(data.id, selectedCity, addr);
-}
+const data = await res.json();
+if (data && data.id) rememberMyListing(data.id, selectedCity, addr);
 note.textContent = 'Added ✓ — it\'s on the list now.';
 note.style.display = 'inline';
 document.getElementById('reportAddr').value = '';
@@ -1011,36 +1384,116 @@ note.textContent = 'Something went wrong — try again.';
 note.style.display = 'inline';
 }
 }
-// Rightmove, OnTheMarket, SpareRoom (and Alba) curated/live listings now come entirely from
-// the server (/api/listings) as of 2026-07-30 — see STATIC_LISTINGS + getStaticListings() in
-// api/listings.js. This used to be duplicated here client-side and concatenated on top of the
-// server response, which double-counted every one of those listings (the "67/91 rentals"
-// bug) — removed 2026-08-05 so the server's response is the single source of truth.
+
+// Rightmove/OnTheMarket/SpareRoom's own hand-curated snapshot used to live here as a plain
+// client-side const (STATIC_LISTINGS_STA) — removed 2026-08-04. It was a leftover from before
+// 2026-07-30, when this data was intentionally moved into api/listings.js's
+// STATIC_LISTINGS['St Andrews'] so it would sit behind the same login/paywall check as the
+// live-scraped listings (see the comment there for the full reasoning). Leaving a second copy
+// here meant anyone could view-source the page and read every listing for free with no login,
+// AND it double-counted every property that existed in both copies (inflating the "rentals
+// available" number on the dashboard). The scheduled refresh task now edits the api/listings.js
+// copy directly instead of this one.
+
+// Edinburgh: Rightmove's dedicated student-accommodation search shows 312 results across 13
+// pages right now — far too many to hand-curate the way St Andrews' tiny market allows. This is
+// a labeled sample from page 1 (live-verified 2026-07-15), not exhaustive coverage. No small
+// independent Edinburgh agent has been found live-fetchable yet (Umega, Cullen Property, Domus
+// and Citylets are all JS-rendered or scraping-restricted) — still looking.
+const STATIC_LISTINGS_EDI = [
+{ source: 'Rightmove', tag: 'src-rm', address: 'South Oxford Street, Newington, EH8', beds: 3, baths: 1, price: '£2,325 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'East Suffolk Park, Newington, Edinburgh', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Causewayside, Newington, EH9', beds: 3, baths: 1, price: '£2,275 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Montpelier Park, Bruntsfield, EH10', beds: 3, baths: 1, price: '£2,175 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Bruntsfield Avenue, Bruntsfield, EH10', beds: 4, baths: 1, price: '£2,600 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Dalry Road, Dalry, EH11', beds: 2, baths: 1, price: '£1,400 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Logie Green Road, Canonmills, EH7', beds: 3, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Murano Place, off Leith Walk, EH7', beds: 3, baths: 2, price: '£2,275 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Buchanan Street, Leith, EH6', beds: 1, baths: null, price: '£895 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Montpelier Park, EH10', beds: 3, baths: 1, price: '£2,600 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Edinburgh.html' }
+];
+
+// Durham, Bath, York, Exeter: real Rightmove student-accommodation listings, live-verified
+// 2026-07-15 (samples, not exhaustive — same treatment as Edinburgh above).
+const STATIC_LISTINGS_DUR = [
+{ source: 'Rightmove', tag: 'src-rm', address: 'Newton Drive, Durham, DH1', beds: 5, baths: 2, price: '£1,195 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Lambton House, Durham, DH1', beds: 4, baths: 1, price: '£737 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Durham Terrace, Framwellgate Moor, Durham, DH1 5EH', beds: 2, baths: 1, price: '£823 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'High Street South, Langley Moor, Durham', beds: 2, baths: 1, price: '£780 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Avenue Street, High Shincliffe, Durham, DH1', beds: 2, baths: 1, price: '£1,200 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Highgate, Durham, DH1 4GA', beds: 4, baths: 2, price: '£2,400 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Metropolis House, Durham City, DH1', beds: 1, baths: 1, price: '£950 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'May Street, Durham, DH1', beds: 3, baths: 1, price: '£1,500 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Durham.html' }
+];
+
+const STATIC_LISTINGS_BATH = [
+{ source: 'Rightmove', tag: 'src-rm', address: 'Stuart Place, Twerton, Bath', beds: 4, baths: 1, price: '£2,950 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'St Kildas Road, Bath, BA2 3QL', beds: 5, baths: 1, price: '£3,900 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Radway House, Wellsway, Bath', beds: 5, baths: 5, price: '£4,550 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Wellsway, Bath', beds: 1, baths: 1, price: '£910 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Noble House, Stothert Avenue, Bath, BA2', beds: 1, baths: 1, price: '£1,540 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'River Place, Twerton, Bath', beds: 1, baths: 1, price: '£1,149 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'St James\'s Parade, Bath', beds: 2, baths: 1, price: '£2,077 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Bath.html' }
+];
+
+const STATIC_LISTINGS_YORK = [
+{ source: 'Rightmove', tag: 'src-rm', address: 'Haxby Road, York, YO31', beds: 1, baths: null, price: '£802 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Brownlow Street, The Groves, York', beds: 2, baths: 1, price: '£1,517 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Leake Street, York, YO10', beds: 2, baths: 1, price: '£1,550 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Fountayne House, Lawrence Square, York', beds: 3, baths: 2, price: '£2,626 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/York.html' }
+];
+
+const STATIC_LISTINGS_EXE = [
+{ source: 'Rightmove', tag: 'src-rm', address: 'Flat 25, Concord House, Exeter', beds: 1, baths: 1, price: '£1,084 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'New North Road, Exeter', beds: 1, baths: 1, price: '£1,040 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Commercial Road, Exeter, EX2', beds: 2, baths: 1, price: '£1,900 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Prince Charles Road, Exeter', beds: 3, baths: 2, price: '£2,100 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Blackboy Road, Exeter', beds: 1, baths: 1, price: '£1,062 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Fore Street, Exeter, EX4', beds: 3, baths: 2, price: '£1,950 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Sandford Walk, Exeter, EX1', beds: 4, baths: 2, price: '£1,750 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' },
+{ source: 'Rightmove', tag: 'src-rm', address: 'Bonhay Road, Exeter, EX4', beds: 2, baths: 2, price: '£1,600 pcm', url: 'https://www.rightmove.co.uk/student-accommodation/Exeter.html' }
+];
+
+function withPriceValue(list) {
+return list.map(x => ({ ...x, priceValue: (function(){ const m = x.price.replace(/,/g,'').match(/£\s*(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : null; })() }));
+}
 
 // Per-city config: which sources are live-checked (via this site's own /api/listings backend,
 // passing ?city=) vs manually curated, and what to label as "checked" in the sources strip.
 const CITY_CONFIG = {
 'St Andrews': {
-sourcesChecked: ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Studentpad', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'OnTheMarket', 'SpareRoom', 'Alba St Andrews'],
+// Rightmove/OnTheMarket/SpareRoom's hand-curated snapshot lives server-side now, in
+// api/listings.js's STATIC_LISTINGS['St Andrews'] — it's already included in whatever
+// /api/listings returns below, gated behind the same login/paywall check as the live-scraped
+// agencies. staticListings here stays empty on purpose: it used to duplicate that same data
+// client-side (readable via view-source with no login, and double-counted against the
+// server-side copy), which is what got removed 2026-08-04.
+staticListings: [],
+sourcesChecked: ['St Andrews Property Lets', 'Bradburne & Co', '55Rent', 'HMJ Properties', 'Lawson & Thompson', 'Stand Property', "St Andy's Student Letting", 'Rightmove', 'OnTheMarket', 'SpareRoom', 'Alba'],
 useBackend: true
 },
 'Edinburgh': {
+staticListings: withPriceValue(STATIC_LISTINGS_EDI),
 sourcesChecked: ['Rightmove'],
 useBackend: false
 },
 'Durham': {
+staticListings: withPriceValue(STATIC_LISTINGS_DUR),
 sourcesChecked: ['Frampton & Roebuck', 'Morgan Douglas', 'Rightmove'],
 useBackend: true
 },
 'York': {
+staticListings: withPriceValue(STATIC_LISTINGS_YORK),
 sourcesChecked: ['2Let Agency', 'Rightmove'],
 useBackend: true
 },
 'Bath': {
+staticListings: withPriceValue(STATIC_LISTINGS_BATH),
 sourcesChecked: ['Peter Moore Lets', 'Rightmove'],
 useBackend: true
 },
 'Exeter': {
+staticListings: withPriceValue(STATIC_LISTINGS_EXE),
 sourcesChecked: ['Studentpad', 'Rightmove'],
 useBackend: true
 }
@@ -1062,6 +1515,8 @@ let activeSort = 'default';
 let activeBeds = 'All';
 let activePriceMax = 0;
 let activePriceMin = 0;
+let hideDuplicates = false;
+const PRICE_SLIDER_MAX = 3000;
 
 function renderFilters() {
 const sources = [...new Set(allListings.map(l => l.source))];
@@ -1095,15 +1550,98 @@ activeBeds = document.getElementById('bedsSelect').value;
 renderList();
 }
 
-function onPriceMaxChange() {
-activePriceMax = parseInt(document.getElementById('priceMaxSelect').value, 10);
+function onPriceRangeChange() {
+const minEl = document.getElementById('priceMinRange');
+const maxEl = document.getElementById('priceMaxRange');
+let minV = parseInt(minEl.value, 10);
+let maxV = parseInt(maxEl.value, 10);
+// Don't let the two handles cross — keep at least one step of daylight between them.
+if (minV > maxV - 50) {
+if (document.activeElement === minEl) { maxV = Math.min(PRICE_SLIDER_MAX, minV + 50); maxEl.value = maxV; }
+else { minV = Math.max(0, maxV - 50); minEl.value = minV; }
+}
+activePriceMin = minV;
+activePriceMax = maxV >= PRICE_SLIDER_MAX ? 0 : maxV; // 0 = no cap, matches the filter logic below
+updatePriceSliderUI(minV, maxV);
 renderList();
 }
 
-function onPriceMinChange() {
-activePriceMin = parseInt(document.getElementById('priceMinSelect').value, 10);
+function updatePriceSliderUI(minV, maxV) {
+const pct = v => (v / PRICE_SLIDER_MAX) * 100;
+document.getElementById('priceRangeFill').style.left = pct(minV) + '%';
+document.getElementById('priceRangeFill').style.right = (100 - pct(maxV)) + '%';
+const label = document.getElementById('priceRangeLabel');
+if (minV <= 0 && maxV >= PRICE_SLIDER_MAX) {
+label.textContent = 'Any price';
+} else if (maxV >= PRICE_SLIDER_MAX) {
+label.textContent = '£' + minV.toLocaleString() + '+';
+} else if (minV <= 0) {
+label.textContent = 'Under £' + maxV.toLocaleString();
+} else {
+label.textContent = '£' + minV.toLocaleString() + ' – £' + maxV.toLocaleString();
+}
+}
+
+function toggleDedupe() {
+hideDuplicates = !hideDuplicates;
+document.getElementById('dedupeBtn').classList.toggle('dedupe-active', hideDuplicates);
 renderList();
 }
+
+// Same property is regularly posted by more than one agency — this collapses those down to
+// one card. Matching is best-effort (normalized address text), same spirit as the scrapers
+// themselves: good enough to be genuinely useful, not a guarantee of a perfect match.
+function normalizeAddrKey(addr) {
+return (addr || '')
+.toLowerCase()
+.replace(/\bst\b\.?/g, 'street')
+.replace(/[^a-z0-9]/g, '');
+}
+
+function dedupeByAddress(items) {
+const seen = new Set();
+const out = [];
+for (const item of items) {
+const key = normalizeAddrKey(item.address);
+if (key && seen.has(key)) continue;
+if (key) seen.add(key);
+out.push(item);
+}
+return out;
+}
+
+// --- Saved/flagged listings: purely a per-device preference (like name/email above), no
+// account or backend needed — just localStorage, keyed the same way api/listings.js tells
+// "genuinely new" listings apart (source + normalized address), so a favourite still matches
+// up correctly even if the exact listing text shifts slightly between scrapes.
+function clientListingId(item) {
+return (item.source || '') + '::' + normalizeAddrKey(item.address);
+}
+let favoritedIds = new Set();
+let showFavoritesOnly = false;
+function loadFavorites() {
+try {
+const raw = localStorage.getItem('rw_favorites');
+favoritedIds = new Set(raw ? JSON.parse(raw) : []);
+} catch (e) { favoritedIds = new Set(); }
+}
+function saveFavorites() {
+localStorage.setItem('rw_favorites', JSON.stringify([...favoritedIds]));
+}
+function isFavorited(item) {
+return favoritedIds.has(clientListingId(item));
+}
+function toggleFavorite(id) {
+if (favoritedIds.has(id)) favoritedIds.delete(id); else favoritedIds.add(id);
+saveFavorites();
+renderList();
+}
+function toggleFavoritesOnly() {
+showFavoritesOnly = !showFavoritesOnly;
+document.getElementById('favBtn').classList.toggle('fav-active', showFavoritesOnly);
+renderList();
+}
+loadFavorites(); // once, at script load — before any card ever renders
 
 function getSortedFiltered() {
 let items = activeFilters.size === 0 ? [...allListings] : allListings.filter(l => activeFilters.has(l.source));
@@ -1130,6 +1668,8 @@ items.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
 } else if (activeSort === 'source') {
 items.sort((a, b) => a.source.localeCompare(b.source));
 }
+if (hideDuplicates) items = dedupeByAddress(items);
+if (showFavoritesOnly) items = items.filter((l) => isFavorited(l));
 return items;
 }
 
@@ -1183,41 +1723,6 @@ return 'mailto:' + encodeURIComponent(item.contactEmail).replace(/%40/g, '@')
 + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
 }
 
-// Always just a "Contact" button — clicking it opens a small popup showing exactly what the
-// student wrote in the Contact field (email, phone, Instagram, whatever), rather than trying to
-// guess what kind of contact it is and build a mailto:/tel:/instagram.com link out of it.
-function buildContactAction(item) {
-if (!(item.contact || '').trim()) return '';
-return `<button class="contact-link" data-contact-btn="1">Contact</button>`;
-}
-function showContactInfo(text) {
-document.getElementById('contactCardText').textContent = text;
-document.getElementById('contactOverlay').classList.add('open');
-}
-function closeContactInfo() {
-document.getElementById('contactOverlay').classList.remove('open');
-}
-
-async function removeListing(id, btn) {
-if (!confirm('Remove this listing you added?')) return;
-btn.disabled = true;
-btn.textContent = 'Removing…';
-try {
-const res = await fetch('/api/submit-listing', {
-method: 'DELETE',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ city: selectedCity, id })
-});
-if (!res.ok) throw new Error('request failed');
-forgetMyListing(id);
-runCheck(true);
-} catch (e) {
-btn.disabled = false;
-btn.textContent = 'Remove';
-alert('Could not remove it — try again.');
-}
-}
-
 let currentItems = [];
 
 function thumbInner(item) {
@@ -1236,21 +1741,54 @@ items.forEach((item, idx) => {
 const meta = bedBathLabel(item);
 const card = document.createElement('div');
 card.className = 'card';
+// Portal listings (Rightmove/OnTheMarket/SpareRoom) don't have one fixed agency email to
+// mail to — each listing there belongs to a different landlord/agent — so a "Request viewing"
+// mailto would either be blank or wrong. Their own listing page has a real enquiry form built
+// in, so the View link itself is the enquiry path for those; the label makes that clear instead
+// of silently having no second button like before.
+// A "Request viewing" button always sits below this one when a real agency contact
+// email exists (see .card-actions). For portal sources (Rightmove/OnTheMarket/SpareRoom)
+// there's no single agency email to build that second button from, so a separate
+// "Request viewing" link genuinely can't exist there — plain "View" is clearer than a
+// label implying an enquiry action that isn't actually offered.
+const viewLabel = 'View';
 const isCommunity = item.tag === 'src-community';
 const myId = isCommunity ? myListingId(item) : null;
-const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">View</a>` : (isCommunity ? buildContactAction(item) : (item.contact ? `<span class="card-contact">${item.contact}</span>` : ''));
-const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
+const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">${viewLabel}</a>` : (isCommunity ? buildContactAction(item) : (item.contact ? `<span class="card-contact">${item.contact}</span>` : ''));
 const removeBtn = myId ? `<button class="remove-link" data-remove-id="${myId}">Remove</button>` : '';
+const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
+const fav = isFavorited(item);
+// Real listing photos aren't pulled in for any source yet (item.image is always unset), which
+// meant every single card showed the same generic house-outline placeholder icon — visual
+// clutter that added nothing since it never varied. Cards now skip the thumbnail entirely when
+// there's no real photo (i.e. always, for now) and lean on typography/spacing instead — source
+// badge on top, address in the brand's Space Grotesk headline font below it, then beds/baths
+// (same Space Grotesk family, just smaller/muted) at the bottom, and a bolder price + View
+// button on the side. thumbInner()/.card-thumb stay wired up for the day a source actually
+// supplies real photos.
 card.innerHTML = `
-<div class="card-thumb" onclick="openLightboxAt(${idx})">${thumbInner(item)}</div>
+<button class="flag-btn${fav ? ' flagged' : ''}" aria-label="${fav ? 'Remove from saved' : 'Save this listing'}" title="${fav ? 'Remove from saved' : 'Save this listing'}">
+<svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
+</button>
+${item.image ? `<div class="card-thumb">${thumbInner(item)}</div>` : ''}
 <div class="card-main">
-<div class="card-addr"><span class="src ${item.tag}">${item.source}</span>${item.address}</div>
+<div class="card-top-row"><span class="src ${item.tag}">${item.source}</span></div>
+<div class="card-addr">${item.address}</div>
 ${meta ? `<div class="card-meta">${meta}</div>` : ''}
 </div>
+<div class="card-side">
 <div class="price">${item.price || ''}</div>
 <div class="card-actions">${viewBtn}${viewingBtn}${removeBtn}</div>
+</div>
 `;
-el.appendChild(card);
+// Whole card opens the quick-look popup now that there's no dedicated thumbnail to click —
+// the flag button and the actual action links/buttons stop propagation so they still act
+// directly instead of also popping the lightbox open behind them.
+card.onclick = () => openLightboxAt(idx);
+const flagBtn = card.querySelector('.flag-btn');
+flagBtn.onclick = (e) => { e.stopPropagation(); toggleFavorite(clientListingId(item)); };
+const actionsEl = card.querySelector('.card-actions');
+if (actionsEl) actionsEl.onclick = (e) => e.stopPropagation();
 if (myId) {
 const rBtn = card.querySelector('[data-remove-id]');
 if (rBtn) rBtn.addEventListener('click', () => removeListing(myId, rBtn));
@@ -1259,6 +1797,7 @@ if (isCommunity && (item.contact || '').trim()) {
 const cBtn = card.querySelector('[data-contact-btn]');
 if (cBtn) cBtn.addEventListener('click', () => showContactInfo(item.contact));
 }
+el.appendChild(card);
 });
 }
 
@@ -1272,9 +1811,20 @@ if (!item) return;
 document.getElementById('lbAddr').textContent = item.address;
 document.getElementById('lbMeta').textContent = [item.source, bedBathLabel(item)].filter(Boolean).join(' · ');
 document.getElementById('lbPrice').textContent = item.price || '';
-const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">View listing</a>` : '';
+const lbViewLabel = 'View listing';
+const viewBtn = item.url ? `<a class="view-link" href="${item.url}" target="_blank">${lbViewLabel}</a>` : '';
 const viewingBtn = item.contactEmail ? `<a class="viewing-link" href="${buildViewingMailto(item)}">Request viewing</a>` : '';
 document.getElementById('lbActions').innerHTML = viewBtn + viewingBtn;
+const lbFav = isFavorited(item);
+const lbFlagBtn = document.getElementById('lbFlagBtn');
+if (lbFlagBtn) {
+lbFlagBtn.classList.toggle('flagged', lbFav);
+lbFlagBtn.title = lbFav ? 'Remove from saved' : 'Save this listing';
+lbFlagBtn.onclick = () => {
+toggleFavorite(clientListingId(item));
+openLightboxAt(idx); // re-render just this button's state without closing the popup
+};
+}
 document.getElementById('lightboxOverlay').classList.add('open');
 }
 function closeLightbox() {
@@ -1295,7 +1845,7 @@ try {
 const url = '/api/listings?city=' + encodeURIComponent(selectedCity) + (force ? '&force=1' : '');
 const res = await fetch(url, { cache: 'no-store' });
 const data = await res.json();
-allListings = data.listings || [];
+allListings = [...cfg.staticListings, ...(data.listings || [])];
 document.getElementById('bigNum').textContent = allListings.length;
 if (cfg.useBackend) {
 lastCheckedAt = data.checkedAt;
@@ -1312,8 +1862,9 @@ console.error('Roomrun source errors:', data.errors);
 renderFilters();
 renderList();
 renderSourcesStrip();
+updatePriceSliderUI(parseInt(document.getElementById('priceMinRange').value, 10), parseInt(document.getElementById('priceMaxRange').value, 10));
 } catch (e) {
-allListings = [];
+allListings = [...cfg.staticListings];
 document.getElementById('bigNum').textContent = allListings.length;
 document.getElementById('list').innerHTML = '<div class="empty">Could not reach the server. Try refreshing.</div>';
 }
