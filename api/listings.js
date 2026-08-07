@@ -1015,21 +1015,21 @@ module.exports = async (req, res) => {
   if (sourceData.isFreshScrape) {
     try {
       const seenKey = 'lastseen2:' + city;
-      const prevIds = await redis.smembers(seenKey).catch(() => []);
-      const currentIds = allListings.map(listingId);
-      // Only notify if we have a real baseline from a previous check AND this isn't a
-      // wholesale change (e.g. a parser rewrite shifting every id, or the very first run) —
-      // guards against ever blasting "40 new listings" to everyone from a false positive.
-      if (prevIds && prevIds.length) {
-        const prevSet = new Set(prevIds);
-        const newItems = allListings.filter((l) => !prevSet.has(listingId(l)));
-        if (newItems.length && newItems.length < allListings.length) {
-          await notifyNewListings(city, newItems);
-        }
+      // Was: snapshot-read-diff-then-overwrite-the-whole-set. Under concurrent fresh scrapes
+      // (cron + a page load + a manual force-refresh landing close together) two requests could
+      // both read the same prevIds before either finished rewriting the set, so both decided the
+      // same listing was new and each sent its own push -- a subscriber getting the same
+      // listing multiple times in a row is exactly this. SADD on a single id is atomic in
+      // Redis: it returns 1 only for whichever request actually adds it first, so at most one
+      // of any number of concurrent requests can ever treat a given id as new.
+      const isFirstEverRun = (await redis.exists(seenKey).catch(() => 1)) === 0;
+      const newItems = [];
+      for (const item of allListings) {
+        const added = await redis.sadd(seenKey, listingId(item)).catch(() => 0);
+        if (added === 1 && !isFirstEverRun) newItems.push(item);
       }
-      if (currentIds.length) {
-        await redis.del(seenKey).catch(() => {});
-        await redis.sadd(seenKey, ...currentIds).catch(() => {});
+      if (newItems.length && newItems.length < allListings.length) {
+        await notifyNewListings(city, newItems);
       }
     } catch (e) {
       // Notification bookkeeping must never break the actual listings response.
