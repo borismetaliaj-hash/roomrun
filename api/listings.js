@@ -751,67 +751,60 @@ const CITY_SOURCES = {
 // the comment above CITY_SOURCES for the full reasoning. Alba used to be in this same static
 // snapshot too but moved to a real live source (see parseAlba above) since its own site has no
 // such restriction.
-// Hand refresh 2026-08-05: every St Andrews listing below was re-checked live on its source
-// site today (human-style browse, not a scraper) — Rightmove, OnTheMarket and SpareRoom's
-// current St Andrews search results — and every URL points to that day's actual live listing
-// page, not a generic search results page. Balrymonth Court (Rightmove) and several new
-// OnTheMarket entries (Doocot Road, a second Lamond Drive flat, Younger Gardens, Fraser
-// Avenue, Chamberlain Street, Lamberton Place, Kilrymont Road studio) were added; Abbey Street
-// (Rightmove) had been let and was dropped. The East Sands (OnTheMarket) room's baths were
-// corrected from 8 to 1 — its own listing page shows the room is one of 8 in an 8-bed/8-bath
-// shared flat, but only its private ensuite is relevant here. Two Guardbridge SpareRoom results
-// were excluded as out of town.
+// Hand refresh 2026-08-24: every St Andrews listing below was re-checked live on its source site
+// today (human-style browse, not a scraper) after the scheduled daily refresh task turned out to
+// have been silently failing since 2026-08-13 (confirmed via Vercel deployment history — no new
+// deploy with changed content in ~10 days despite firing daily; root cause not yet diagnosed).
+// Rightmove: added Howard Place, Pilmour Place, a second Lamond Drive (2 bed), Warrack Street and
+// Morton Crescent; dropped Nelson Street, the 3-bed Balrymonth Court, St Leonards Fields House and
+// the 4-bed Lamond Drive (all let). OnTheMarket: added Warrack Street, Pilmour Place, a 1-bed Bell
+// Brae flat and a new-build 7-bed Scooniehill Road listing (replacing both previous Scooniehill
+// Road entries, which are gone); dropped Nelson Street, the old 2-bed Scooniehill Road, Lawhead
+// School Wynd, East Sands ensuite, Fraser Avenue and Lamberton Place (all let/removed). A
+// standalone "Westview" OnTheMarket result was skipped — it's just parking spaces, not housing.
+// SpareRoom sees the fastest turnover of the three: 9 of the previous 13 room listings are gone
+// (rooms get taken within days), so its list below is close to a full replacement — added
+// Kilrymont Crescent (a 3-bed house, not just a room) and updated the "warm sunny quiet house"
+// listing's price (£950 -> £900); two Guardbridge/Strathkinness results were excluded as out of
+// town, matching the existing curation pattern.
 const STATIC_LISTINGS = {
   'St Andrews': [
-    { source: 'Rightmove', tag: 'src-rm', address: 'Balrymonth Court, St. Andrews, Fife', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.google.com/url?q=https://www.rightmove.co.uk/properties/91765323&source=gmail&ust=1786375970321000&sa=E' },
-{ source: 'Rightmove', tag: 'src-rm', address: 'Scooniehill Road, St. Andrews, KY16', beds: 2, baths: 1, price: '£1,400 pcm', url: 'https://www.google.com/url?q=https://www.rightmove.co.uk/properties/91764846&source=gmail&ust=1786375970321000&sa=E' },
-{ source: 'Rightmove', tag: 'src-rm', address: 'Chambers Place, St. Andrews, Fife, KY16', beds: 2, baths: 2, price: '£1,750 pcm', url: 'https://www.google.com/url?q=https://www.rightmove.co.uk/properties/91753689&source=gmail&ust=1786375970321000&sa=E' },
-    { source: 'Rightmove', tag: 'src-rm', address: 'Nelson Street, St Andrews, Fife, KY16', beds: 2, baths: 2, price: '£1,680 pcm', url: 'https://www.google.com/url?q=https://www.rightmove.co.uk/properties/91714017&source=gmail&ust=1786148394898000&sa=E' },
-{ source: 'Rightmove', tag: 'src-rm', address: 'St Andrews Hall, St Andrews, KY16', beds: 1, baths: 1, price: '£1,296 pcm', url: 'https://www.google.com/url?q=https://www.rightmove.co.uk/properties/91696722&source=gmail&ust=1786148394898000&sa=E' },
-    { source: 'Rightmove', tag: 'src-rm', address: 'Balrymonth Court, St. Andrews, Fife', beds: 3, baths: 1, price: '£1,400 pcm', url: 'https://www.rightmove.co.uk/properties/91628925' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Balrymonth Court, St. Andrews, Fife', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/properties/91765323' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Scooniehill Road, St. Andrews, KY16', beds: 2, baths: 1, price: '£1,400 pcm', url: 'https://www.rightmove.co.uk/properties/91764846' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Chambers Place, St. Andrews, Fife, KY16', beds: 2, baths: 2, price: '£1,750 pcm', url: 'https://www.rightmove.co.uk/properties/91753689' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'St Andrews Hall, St Andrews, KY16', beds: 1, baths: 1, price: '£1,296 pcm', url: 'https://www.rightmove.co.uk/properties/91696722' },
     { source: 'Rightmove', tag: 'src-rm', address: 'Adamson Court, St Andrews, Fife, KY16', beds: 3, baths: 2, price: '£2,225 pcm', url: 'https://www.rightmove.co.uk/properties/91132011' },
-    { source: 'Rightmove', tag: 'src-rm', address: 'St Leonards Fields House, Abbey Walk, St Andrews, KY16', beds: 2, baths: 2, price: '£2,990 pcm', url: 'https://www.rightmove.co.uk/properties/89761173' },
-    { source: 'Rightmove', tag: 'src-rm', address: 'Lamond Drive, St. Andrews, Fife, KY16', beds: 4, baths: null, price: '£3,300 pcm', url: 'https://www.rightmove.co.uk/properties/149596712' },
+    { source: 'Rightmove', tag: 'src-rm', address: '5 Howard Place, St Andrews, Fife, KY16', beds: 1, baths: null, price: '£1,125 pcm', url: 'https://www.rightmove.co.uk/properties/92312991' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Pilmour Place, St. Andrews, KY16', beds: 1, baths: 1, price: '£950 pcm', url: 'https://www.rightmove.co.uk/properties/92114706' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Lamond Drive, St Andrews, Fife, KY16', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/properties/92101599' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Warrack Street, St Andrews, Fife, KY16', beds: 2, baths: 1, price: '£1,800 pcm', url: 'https://www.rightmove.co.uk/properties/91934394' },
+    { source: 'Rightmove', tag: 'src-rm', address: 'Morton Crescent, St Andrews, Fife, KY16', beds: 3, baths: 1, price: '£1,650 pcm', url: 'https://www.rightmove.co.uk/properties/92258766' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'Adamson Court, St Andrews, Fife, KY16', beds: 3, baths: 2, price: '£2,225 pcm', url: 'https://www.onthemarket.com/details/13649689/' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'Nelson Street, St Andrews, Fife, KY16', beds: 2, baths: null, price: '£1,680 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/20083028/&source=gmail&ust=1786148394898000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'Cottage Nether, St. Andrews, Fife', beds: 2, baths: 1, price: '£1,000 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/20086905/&source=gmail&ust=1786375970321000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'East Sands, St Andrews, KY16 (room in 8-bed flat share)', beds: 1, baths: null, price: '£867 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/20078593/&source=gmail&ust=1786375970321000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'Chambers Place, St Andrews, Fife, KY16', beds: 2, baths: 2, price: '£1,750 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/16302878/&source=gmail&ust=1786375970321000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'St Andrews Hall, St Andrews, KY16', beds: 1, baths: 1, price: '£1,296 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/20080907/&source=gmail&ust=1786148394898000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'Winram Place, St Andrews, KY16', beds: 2, baths: null, price: '£1,750 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/17282183/&source=gmail&ust=1786148394898000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'South Street, St Andrews, Fife, KY16', beds: 1, baths: null, price: '£1,400 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/17394010/&source=gmail&ust=1786148394898000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'St Andrews Hall, St Andrews, KY16 (house share)', beds: 1, baths: 1, price: '£1,235 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/19933244/&source=gmail&ust=1786148394898000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'Doocot Road, St Andrews, Fife', beds: 2, baths: 1, price: '£1,600 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/19821409/&source=gmail&ust=1786148394898000&sa=E' },
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'Bell Brae, St Andrews, KY16', beds: 2, baths: null, price: '£2,100 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/16997486/&source=gmail&ust=1786148394898000&sa=E' },
-    { source: 'OnTheMarket', tag: 'src-otm', address: 'Scooniehill Road, St Andrews, KY16', beds: 2, baths: 1, price: '£1,800 pcm', url: 'https://www.onthemarket.com/details/20059271/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Cottage Nether, St. Andrews, Fife', beds: 2, baths: 1, price: '£1,000 pcm', url: 'https://www.onthemarket.com/details/20086905/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'East Sands, St Andrews, KY16 (room in 8-bed flat share)', beds: 1, baths: null, price: '£867 pcm', url: 'https://www.onthemarket.com/details/20078593/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Chambers Place, St Andrews, Fife, KY16', beds: 2, baths: 2, price: '£1,750 pcm', url: 'https://www.onthemarket.com/details/16302878/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'St Andrews Hall, St Andrews, KY16', beds: 1, baths: 1, price: '£1,296 pcm', url: 'https://www.onthemarket.com/details/20080907/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Winram Place, St Andrews, KY16', beds: 2, baths: null, price: '£1,750 pcm', url: 'https://www.onthemarket.com/details/17282183/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'South Street, St Andrews, Fife, KY16', beds: 1, baths: null, price: '£1,400 pcm', url: 'https://www.onthemarket.com/details/17394010/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'St Andrews Hall, St Andrews, KY16 (house share)', beds: 1, baths: 1, price: '£1,235 pcm', url: 'https://www.onthemarket.com/details/19933244/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Doocot Road, St Andrews, Fife', beds: 2, baths: 1, price: '£1,600 pcm', url: 'https://www.onthemarket.com/details/19821409/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Bell Brae, St Andrews, KY16', beds: 2, baths: null, price: '£2,100 pcm', url: 'https://www.onthemarket.com/details/16997486/' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'Hepburn Gardens, St Andrews, KY16', beds: 2, baths: null, price: '£1,750 pcm', url: 'https://www.onthemarket.com/details/20056008/' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'South Street, St Andrews, KY16', beds: 1, baths: 1, price: '£1,260 pcm', url: 'https://www.onthemarket.com/details/14754936/' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'Lamond Drive, St. Andrews, KY16', beds: 2, baths: 1, price: '£1,570 pcm', url: 'https://www.onthemarket.com/details/11785391/' },
-    { source: 'OnTheMarket', tag: 'src-otm', address: 'Lawhead School Wynd, St. Andrews, KY16 (room in flat share)', beds: 1, baths: 2, price: '£800 pcm', url: 'https://www.onthemarket.com/details/20017024/' },
-    
-{ source: 'OnTheMarket', tag: 'src-otm', address: 'Scooniehill Road, St. Andrews, KY16', beds: 7, baths: 2, price: '£3,750 pcm', url: 'https://www.google.com/url?q=https://www.onthemarket.com/details/20008465/&source=gmail&ust=1786375970321000&sa=E' },
-    { source: 'OnTheMarket', tag: 'src-otm', address: 'East Sands, St Andrews, KY16 (ensuite room in 8-bed flat share)', beds: 1, baths: 1, price: '£1,027 pcm', url: 'https://www.onthemarket.com/details/19932521/' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'Lamond Drive, St Andrews, KY16 (ensuite flat)', beds: 2, baths: 3, price: '£2,000 pcm', url: 'https://www.onthemarket.com/details/20059154/' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'Younger Gardens, St Andrews, Fife', beds: 2, baths: 1, price: '£1,600 pcm', url: 'https://www.onthemarket.com/details/19993400/' },
-    { source: 'OnTheMarket', tag: 'src-otm', address: 'Fraser Avenue, St Andrews, Fife', beds: 3, baths: 1, price: '£1,250 pcm', url: 'https://www.onthemarket.com/details/19970591/' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'Chamberlain Street, St Andrews, Fife', beds: 2, baths: 1, price: '£1,650 pcm', url: 'https://www.onthemarket.com/details/19936927/' },
-    { source: 'OnTheMarket', tag: 'src-otm', address: 'Lamberton Place, St Andrews, Fife', beds: 2, baths: 1, price: '£1,500 pcm', url: 'https://www.onthemarket.com/details/19372387/' },
     { source: 'OnTheMarket', tag: 'src-otm', address: 'Kilrymont Road, St Andrews, Fife (studio)', beds: 0, baths: 1, price: '£1,296 pcm', url: 'https://www.onthemarket.com/details/17551938/' },
-    { source: 'SpareRoom', tag: 'src-spr', address: 'Room in a Shared Flat, Lawhead School Wynd, KY16', beds: null, baths: null, price: '£800 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17761286' },
-    { source: 'SpareRoom', tag: 'src-spr', address: 'Double room in warm sunny quiet house (KY16)', beds: null, baths: null, price: '£950 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8847529' },
-    
-{ source: 'SpareRoom', tag: 'src-spr', address: 'Student Room for Let, St Andrews (KY16)', beds: null, baths: null, price: '£850 pcm', url: 'https://www.google.com/url?q=https://www.spareroom.co.uk/flatshare/fife/st._andrews/18377049&source=gmail&ust=1786375970321000&sa=E' },
-{ source: 'SpareRoom', tag: 'src-spr', address: 'Two rooms available, Scooniehill Road, KY16', beds: null, baths: null, price: '£800 pcm', url: 'https://www.google.com/url?q=https://www.spareroom.co.uk/flatshare/fife/st._andrews/18372843&source=gmail&ust=1786148394898000&sa=E' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Warrack Street, St Andrews, Fife, KY16', beds: 2, baths: 1, price: '£1,800 pcm', url: 'https://www.onthemarket.com/details/13267561/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Pilmour Place, St. Andrews, KY16', beds: 1, baths: 1, price: '£950 pcm', url: 'https://www.onthemarket.com/details/20157523/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Bell Brae, St Andrews KY16', beds: 1, baths: null, price: '£2,300 pcm', url: 'https://www.onthemarket.com/details/20133137/' },
+    { source: 'OnTheMarket', tag: 'src-otm', address: 'Scooniehill Road, St. Andrews KY16', beds: 7, baths: 2, price: '£3,195 pcm', url: 'https://www.onthemarket.com/details/20193839/' },
+    { source: 'SpareRoom', tag: 'src-spr', address: 'Double room in warm sunny quiet house (KY16)', beds: null, baths: null, price: '£900 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8847529' },
     { source: 'SpareRoom', tag: 'src-spr', address: 'St. Andrews furnished room, all bills inc. (KY16)', beds: null, baths: null, price: '£1,000 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/2502220' },
-    { source: 'SpareRoom', tag: 'src-spr', address: 'Double room in St Andrews houseshare (KY16)', beds: null, baths: null, price: '£750 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17320699' },
-    { source: 'SpareRoom', tag: 'src-spr', address: 'Double room in sunny 2 bedroom flat (KY16)', beds: null, baths: null, price: '£625 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/18363327' },
-    { source: 'SpareRoom', tag: 'src-spr', address: 'Spacious Double Room in St Andrews (KY16)', beds: null, baths: null, price: '£875 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17108124' },
     { source: 'SpareRoom', tag: 'src-spr', address: 'House share, St Andrews (KY16)', beds: null, baths: null, price: '£1,000 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17472368' },
     { source: 'SpareRoom', tag: 'src-spr', address: 'Double room near East Sands, St Andrews (KY16)', beds: null, baths: null, price: '£750 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8288086' },
-    { source: 'SpareRoom', tag: 'src-spr', address: 'Comfortable Room in Quiet Setting (KY16)', beds: null, baths: null, price: '£595 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/8317123' },
-    
-    { source: 'SpareRoom', tag: 'src-spr', address: '1 room in house, St Andrews (KY16)', beds: null, baths: null, price: '£480 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/16239536' },
-    { source: 'SpareRoom', tag: 'src-spr', address: 'Flat to Rent, St Andrews (KY16)', beds: null, baths: null, price: '£775 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/17296613' },
+    { source: 'SpareRoom', tag: 'src-spr', address: 'Kilrymont Crescent, St Andrews (KY16) - 3 bed house', beds: 3, baths: null, price: '£2,100 pcm', url: 'https://www.spareroom.co.uk/flatshare/fife/st._andrews/18018250' },
   ],
   // Edinburgh: Rightmove's dedicated student-accommodation search shows 312 results across 13
   // pages — far too many to hand-curate the way St Andrews' tiny market allows. This is a
