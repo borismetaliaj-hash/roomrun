@@ -314,7 +314,8 @@ box-shadow: 0 2px 8px rgba(11,23,48,0.08);
 .flag-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 .flag-btn.flagged { color: var(--accent); }
 .flag-btn.flagged svg { fill: var(--accent); }
-.filter-btn.fav-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.new-badge { position: absolute; top: 12px; left: 12px; background: var(--accent); color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 3px 7px; border-radius: 6px; box-shadow: 0 2px 8px -2px rgba(76,126,255,0.5); pointer-events: none; }
+  .filter-btn.fav-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .card:hover { box-shadow: 0 14px 32px -10px rgba(11,23,48,0.16); transform: translateY(-2px); border-color: rgba(76,126,255,0.3); }
 .card > .card-main { flex: 1; min-width: 0; padding-right: 26px; }
 .card-top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
@@ -1767,6 +1768,7 @@ const fav = isFavorited(item);
 // button on the side. thumbInner()/.card-thumb stay wired up for the day a source actually
 // supplies real photos.
 card.innerHTML = `
+${item.isNew ? '<span class="new-badge">New</span>' : ''}
 <button class="flag-btn${fav ? ' flagged' : ''}" aria-label="${fav ? 'Remove from saved' : 'Save this listing'}" title="${fav ? 'Remove from saved' : 'Save this listing'}">
 <svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.1 1.6 6.6 4.6 5.1 7 3.9 9.7 4.9 12 7.6 14.3 4.9 17 3.9 19.4 5.1c3 1.5 3.6 5 1.9 7.8C18.7 16.7 12 21 12 21z"/></svg>
 </button>
