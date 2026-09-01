@@ -57,6 +57,10 @@ function listingId(item) {
   return (item.source || '') + '::' + String(item.address || '').toLowerCase().trim();
 }
 
+// How long the "New" badge stays on a listing after it first appears — see the firstseen
+// tracking below and the isNew flag attached to the response just before it goes out.
+const NEW_BADGE_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
+
 // A subscriber's stored notification preferences (bedrooms / price range / agencies) —
 // null/empty on any field means "no restriction on that field". Missing data on the
 // listing itself (e.g. a source with no priceValue) never excludes it — only positive
@@ -1026,11 +1030,22 @@ module.exports = async (req, res) => {
       // Redis: it returns 1 only for whichever request actually adds it first, so at most one
       // of any number of concurrent requests can ever treat a given id as new.
       const isFirstEverRun = (await redis.exists(seenKey).catch(() => 1)) === 0;
-      const newItems = [];
-      for (const item of allListings) {
-        const added = await redis.sadd(seenKey, listingId(item)).catch(() => 0);
-        if (added === 1 && !isFirstEverRun) newItems.push(item);
-      }
+            // "New" badge bookkeeping (firstseen hash): HSETNX only ever writes a given listing id's
+            // timestamp once, so this just piggybacks on the same per-item loop as the notification
+            // diff above without touching its logic. The one wrinkle is rollout day — if the hash is
+            // completely empty (this feature has never run for this city before), backdating instead
+            // of stamping "now" stops every already-existing listing from suddenly showing "New" for
+            // 4 days the moment this ships; only genuinely new arrivals after that get a real now().
+            const firstSeenKey = 'firstseen:' + city;
+            const firstSeenNeverRun = (await redis.exists(firstSeenKey).catch(() => 1)) === 0;
+            const firstSeenStamp = firstSeenNeverRun ? (Date.now() - NEW_BADGE_WINDOW_MS - 1000) : Date.now();
+            const newItems = [];
+            for (const item of allListings) {
+                      const id = listingId(item);
+                      const added = await redis.sadd(seenKey, id).catch(() => 0);
+                      if (added === 1 && !isFirstEverRun) newItems.push(item);
+                      await redis.hsetnx(firstSeenKey, id, firstSeenStamp).catch(() => {});
+            }
       if (newItems.length && newItems.length < allListings.length) {
         await notifyNewListings(city, newItems);
       }
@@ -1039,6 +1054,23 @@ module.exports = async (req, res) => {
     }
   }
 
+    // "New" badge: read back the firstseen hash unconditionally (not just on a fresh scrape) so
+    // a listing already flagged new keeps showing that way on cached responses between scrapes,
+    // not only in the one response right after a scrape. Cosmetic only — never let a Redis hiccup
+    // here break the actual listings response.
+    try {
+          const firstSeenMap = await redis.hgetall('firstseen:' + city);
+          if (firstSeenMap) {
+                  const now = Date.now();
+                  for (const item of allListings) {
+                            const ts = Number(firstSeenMap[listingId(item)]);
+                            item.isNew = Number.isFinite(ts) && (now - ts) < NEW_BADGE_WINDOW_MS;
+                  }
+          }
+    } catch (e) {
+          // ignore — badge just won't show for this response
+    }
+  
   res.status(200).json({
     listings: allListings,
     errors: sourceData.errors,
