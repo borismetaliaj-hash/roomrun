@@ -1,6 +1,6 @@
 // Roomrun service worker — enables "Add to Home Screen" / installability,
 // caches the app shell for offline fallback, and handles push notifications.
-const CACHE = 'roomrun-v2';
+const CACHE = 'roomrun-v3';
 const SHELL = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
